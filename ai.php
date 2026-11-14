@@ -22,7 +22,7 @@ $stmt->execute();
 $like_result = $stmt->get_result()->fetch_assoc();
 
 $like_count = $like_result["total"];
-
+$like_count += 245895; // ваше подтверждённое старое число
 
 // -------------------------
 // COMMENT COUNT
