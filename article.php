@@ -243,6 +243,18 @@ class="text-blue-600 hover:underline">
 
     </div>
 
+    <?php if ($article["visibility"] === "public"): ?>
+    <section id="comments" class="bg-white rounded-xl shadow-lg p-10 mt-8">
+        <h2 class="text-3xl font-bold mb-2">Academic Discussion</h2>
+        <p class="text-gray-600 mb-6">Questions, interpretations and suggestions about this article.</p>
+        <?php
+        $discussion_journal = (string)$article["journal"];
+        $discussion_article = $article;
+        include "discussion.php";
+        ?>
+    </section>
+    <?php endif; ?>
+
 </div>
 
 </body>

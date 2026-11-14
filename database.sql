@@ -121,16 +121,24 @@ CREATE TABLE editorial_content (
 CREATE TABLE journal_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     journal VARCHAR(200) NOT NULL,
+    submission_id INT NULL,             -- article discussion (NULL = journal discussion)
     user_id INT NOT NULL,
     parent_id INT NULL,                 -- reply to this comment
+    kind VARCHAR(20) NOT NULL DEFAULT 'comment',   -- comment / prompt (editorial question)
+    topic VARCHAR(30) NOT NULL DEFAULT 'general',  -- subject label
     comment TEXT NOT NULL,
+    -- Pending Review / Published / Featured / Hidden / Reported / Archived
     status VARCHAR(20) NOT NULL DEFAULT 'Published',
+    is_pinned TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NULL,           -- set when the author edits the comment
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE,
     INDEX (journal),
-    INDEX (parent_id)
+    INDEX (parent_id),
+    INDEX (submission_id),
+    INDEX (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE journal_likes (

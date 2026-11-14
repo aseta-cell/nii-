@@ -32,7 +32,9 @@ $stmt = $conn->prepare("
     SELECT COUNT(*) AS total
     FROM journal_comments
     WHERE journal = ?
-    AND status = 'Published'
+    AND submission_id IS NULL
+    AND kind = 'comment'
+    AND status IN ('Published', 'Featured', 'Reported')
 ");
 
 $stmt->bind_param("s", $journal);
@@ -739,69 +741,9 @@ $view_count++;
 
     <h2 class="text-headline-md font-headline-md text-primary mb-6">
 
-        Comments
+        Academic Discussion
 
     </h2>
-
-
-    <?php if ($user_id): ?>
-
-        <form
-            action="journal_comment.php"
-            method="POST"
-            class="mb-8"
-        >
-
-            <input
-                type="hidden"
-                name="journal"
-                value="<?= e($journal) ?>"
-            >
-
-
-            <textarea
-                name="comment"
-                required
-                rows="4"
-                placeholder="Write your comment about this journal..."
-                class="w-full border border-outline-variant bg-surface px-4 py-3 rounded-lg focus:border-primary focus:ring-0"
-            ></textarea>
-
-
-            <button
-                type="submit"
-                class="mt-3 bg-primary text-on-primary px-6 py-3 rounded-lg font-bold hover:opacity-90"
-            >
-
-                Post Comment
-
-            </button>
-
-        </form>
-
-    <?php else: ?>
-
-        <div class="bg-surface-container-low border border-outline-variant p-5 rounded-lg mb-8">
-
-            <p>
-
-                Please sign in to leave a comment.
-
-            </p>
-
-            <a
-                href="signin.php"
-                class="text-secondary font-bold hover:underline"
-            >
-
-                Sign In
-
-            </a>
-
-        </div>
-
-    <?php endif; ?>
-
 
     <?php include "journal-comments.php"; ?>
 
