@@ -138,6 +138,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $thumbnail_url = trim($_POST["thumbnail_url"] ?? "");
         $status = ($_POST["status"] ?? "") === "Published" ? "Published" : "Draft";
 
+        // A photo uploaded from the computer is kept on this server (links to other sites can expire)
+        $photo = save_upload("thumbnail_file", ["jpg", "jpeg", "png", "webp", "gif"], 10);
+        if ($photo !== null) {
+            $thumbnail_url = upload_url($photo);
+        }
+
         if ($type === "" || $title === "") {
             die("Title and content type are required.");
         }
@@ -166,6 +172,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         ");
         $stmt->bind_param("i", $content_id);
         $stmt->execute();
+    }
+
+    // Replace the photo of existing website content
+    if (isset($_POST["replace_photo"])) {
+
+        $photo = save_upload("thumbnail_file", ["jpg", "jpeg", "png", "webp", "gif"], 10);
+
+        if ($photo !== null) {
+            $thumbnail_url = upload_url($photo);
+            $stmt = $conn->prepare("UPDATE editorial_content SET thumbnail_url = ? WHERE id = ?");
+            $stmt->bind_param("si", $thumbnail_url, $content_id);
+            $stmt->execute();
+        }
     }
 
     // Delete website content
@@ -666,7 +685,7 @@ $statuses = ["Submitted", "Under Review", "Accepted", "Revision", "Rejected", "P
         Publish news, videos, courses and announcements directly to About page.
     </p>
 
-    <form method="POST" class="space-y-5">
+    <form method="POST" enctype="multipart/form-data" class="space-y-5">
 
         <input type="hidden" name="create_content" value="1">
 
@@ -702,8 +721,15 @@ $statuses = ["Submitted", "Under Review", "Accepted", "Revision", "Rejected", "P
         </div>
 
         <div>
-            <label class="block font-semibold mb-2">Thumbnail / Image URL</label>
+            <label class="block font-semibold mb-2">Photo from your computer (recommended)</label>
+            <input type="file" name="thumbnail_file" accept=".jpg,.jpeg,.png,.webp,.gif" class="w-full border rounded-lg px-4 py-3">
+            <p class="text-sm text-slate-500 mt-1">The photo is stored on this site, so it never disappears. JPG, PNG, WEBP, up to 10 MB.</p>
+        </div>
+
+        <div>
+            <label class="block font-semibold mb-2">…or Image URL</label>
             <input type="url" name="thumbnail_url" placeholder="https://..." class="w-full border rounded-lg px-4 py-3">
+            <p class="text-sm text-slate-500 mt-1">Links from LinkedIn and Instagram stop working after a few weeks — better upload the file.</p>
         </div>
 
         <div>
@@ -759,6 +785,19 @@ $statuses = ["Submitted", "Under Review", "Accepted", "Revision", "Rejected", "P
                             Status: <strong><?= e($content["status"]) ?></strong>
                             · by <?= e($content["editor_name"]) ?>
                         </p>
+
+                        <?php if (!empty($content["thumbnail_url"])): ?>
+                            <img src="<?= e($content["thumbnail_url"]) ?>" alt="" class="mt-3 h-24 rounded-lg border"
+                                 onerror="this.replaceWith(Object.assign(document.createElement('p'), {className: 'mt-3 text-sm text-red-600 font-semibold', textContent: '⚠ Photo is not loading — upload it again below'}))">
+                        <?php endif; ?>
+
+                        <form method="POST" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="content_id" value="<?= (int)$content["id"] ?>">
+                            <input type="file" name="thumbnail_file" accept=".jpg,.jpeg,.png,.webp,.gif" required class="text-sm">
+                            <button type="submit" name="replace_photo" class="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                                Replace photo
+                            </button>
+                        </form>
 
                     </div>
 

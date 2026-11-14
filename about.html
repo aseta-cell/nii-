@@ -798,6 +798,7 @@ async function loadEditorialContent() {
                         src="${item.thumbnail_url}"
                         class="w-full h-48 object-cover rounded-lg mb-4"
                         alt="${item.title}"
+                        onerror="this.remove()"
                     >
                 `;
 
