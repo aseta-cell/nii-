@@ -104,6 +104,17 @@ if ($has_visibility && $has_visibility->num_rows === 0) {
     ");
 }
 
+// Replies and edit marks for journal comments (added automatically on first run)
+$has_parent = $conn->query("SHOW COLUMNS FROM journal_comments LIKE 'parent_id'");
+if ($has_parent && $has_parent->num_rows === 0) {
+    $conn->query("
+        ALTER TABLE journal_comments
+            ADD COLUMN parent_id INT NULL AFTER user_id,
+            ADD COLUMN updated_at DATETIME NULL AFTER created_at,
+            ADD INDEX (parent_id)
+    ");
+}
+
 // Session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

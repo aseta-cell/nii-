@@ -122,12 +122,15 @@ CREATE TABLE journal_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     journal VARCHAR(200) NOT NULL,
     user_id INT NOT NULL,
+    parent_id INT NULL,                 -- reply to this comment
     comment TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'Published',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,           -- set when the author edits the comment
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX (journal)
+    INDEX (journal),
+    INDEX (parent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE journal_likes (
