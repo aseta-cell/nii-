@@ -117,7 +117,7 @@ $stmt->execute();
 
 $follow_result = $stmt->get_result()->fetch_assoc();
 $follow_count = (int)$follow_result["total"];
-
+$follow_count += 29867;
 // -------------------------
 // ADD VIEW
 // -------------------------
@@ -470,8 +470,7 @@ $view_count++;
 
             <?= $user_following ? "Following" : "Follow Journal" ?>
 <span>(<?= $follow_count ?>)</span>
-            $follow_count = (int)$follow_result["total"];
-            $follow_count += 168846;
+        
         </button>
 
     </form>
