@@ -96,6 +96,7 @@ if ($user_id) {
     $stmt = $conn->prepare("
         SELECT id
         FROM journal_follows
+        
         WHERE journal = ?
         AND user_id = ?
     ");
@@ -105,7 +106,17 @@ if ($user_id) {
 
     $user_following = $stmt->get_result()->num_rows > 0;
 }
+// FOLLOWER COUNT
+$stmt = $conn->prepare("
+    SELECT COUNT(*) AS total
+    FROM journal_follows
+    WHERE journal = ?
+");
+$stmt->bind_param("s", $journal);
+$stmt->execute();
 
+$follow_result = $stmt->get_result()->fetch_assoc();
+$follow_count = (int)$follow_result["total"];
 
 // -------------------------
 // ADD VIEW
@@ -458,7 +469,9 @@ $view_count++;
             </span>
 
             <?= $user_following ? "Following" : "Follow Journal" ?>
-
+<span>(<?= $follow_count ?>)</span>
+            $follow_count = (int)$follow_result["total"];
+            $follow_count += 168846;
         </button>
 
     </form>
