@@ -321,6 +321,7 @@ $statuses = ["Submitted", "Under Review", "Accepted", "Revision", "Rejected", "P
             <a href="about.html" class="px-4 py-2 border rounded-lg">Site</a>
             <a href="archive.php" class="px-4 py-2 border rounded-lg">Archive</a>
             <a href="#patents" class="px-4 py-2 border rounded-lg">Patents</a>
+            <a href="discussions-admin.php" class="px-4 py-2 border rounded-lg font-semibold">Discussions</a>
             <a href="account-settings.php" class="px-4 py-2 border rounded-lg">Account</a>
             <a href="logout.php" class="px-4 py-2 bg-slate-900 text-white rounded-lg">Log out</a>
 

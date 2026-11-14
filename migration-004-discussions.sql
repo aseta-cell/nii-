@@ -1,0 +1,6 @@
+-- Academic discussions. The site applies these changes BY ITSELF on first run
+-- (discussion_lib.php, ensure_discussion_schema), including the 190 editorial prompts.
+-- This file only documents the changes; nothing needs to be run by hand.
+--
+-- journal_comments: + submission_id, kind, topic, is_pinned (existing comments are kept)
+-- new tables: discussion_prompts, comment_reports, comment_reactions, reader_feedback, notifications

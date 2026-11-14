@@ -11,7 +11,9 @@ $counts = [];
 $result = $conn->query("
     SELECT journal, COUNT(*) AS total
     FROM journal_comments
-    WHERE status = 'Published'
+    WHERE submission_id IS NULL
+    AND kind = 'comment'
+    AND status IN ('Published', 'Featured', 'Reported')
     GROUP BY journal
 ");
 

@@ -242,6 +242,11 @@ Welcome back,
     Monitor your active research submissions, manage correspondence with the editorial board, and track your institutional membership benefits.
 </p>
 
+<?php $discussion_unread = unread_notifications_count((int)$_SESSION["user_id"]); ?>
+<a href="notifications.php" class="inline-block mt-3 text-body-sm font-bold text-secondary hover:underline">
+    Discussion notifications<?= $discussion_unread ? " (" . $discussion_unread . " new)" : "" ?>
+</a>
+
 </div>
 <div class="flex gap-stack-sm">
 <button class="px-6 py-2 border border-primary text-primary text-label-caps font-label-caps rounded hover:bg-primary hover:text-on-primary transition-all">

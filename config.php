@@ -327,3 +327,6 @@ function waive_fee($submission_id, $user_id)
     $stmt->bind_param("i", $submission_id);
     $stmt->execute();
 }
+
+// Academic discussions (comments, editorial prompts, moderation, reader feedback)
+require_once __DIR__ . "/discussion_lib.php";
