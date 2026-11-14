@@ -806,78 +806,7 @@ style="background-image: url
     <?php endif; ?>
 
 
-    <?php
-
-    $stmt = $conn->prepare("
-        SELECT
-            journal_comments.*,
-            users.fullname
-        FROM journal_comments
-        JOIN users
-        ON journal_comments.user_id = users.id
-        WHERE journal_comments.journal = ?
-        AND journal_comments.status = 'Published'
-        ORDER BY journal_comments.created_at DESC
-    ");
-
-    $stmt->bind_param("s", $journal);
-
-    $stmt->execute();
-
-    $comments = $stmt->get_result();
-
-    ?>
-
-
-    <div class="space-y-5">
-
-        <?php if ($comments->num_rows > 0): ?>
-
-            <?php while ($comment = $comments->fetch_assoc()): ?>
-
-                <div class="border-b border-outline-variant pb-5">
-
-                    <div class="flex justify-between">
-
-                        <strong>
-                            <?= e($comment["fullname"]) ?>
-                        </strong>
-
-                        <span class="text-sm text-on-surface-variant">
-
-                            <?= date(
-                                "d M Y",
-                                strtotime($comment["created_at"])
-                            ) ?>
-
-                        </span>
-
-                    </div>
-
-
-                    <p class="mt-2 text-on-surface-variant">
-
-                        <?= nl2br(
-                            e($comment["comment"])
-                        ) ?>
-
-                    </p>
-
-                </div>
-
-            <?php endwhile; ?>
-
-        <?php else: ?>
-
-            <p class="text-on-surface-variant">
-
-                No comments yet. Be the first to comment.
-
-            </p>
-
-        <?php endif; ?>
-
-    </div>
+    <?php include "journal-comments.php"; ?>
 
 </section>
 

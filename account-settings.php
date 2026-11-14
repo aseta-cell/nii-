@@ -164,7 +164,7 @@ $user = $stmt->get_result()->fetch_assoc();
         account_circle
     </span>
     <span class="hidden lg:block text-label-caps font-label-caps">
-        ******* Your name 
+        <?= e($user["fullname"]) ?>
     </span>
 </a>
 </div>
@@ -176,7 +176,7 @@ $user = $stmt->get_result()->fetch_assoc();
 <aside class="bg-surface-container-low border-r border-outline-variant h-screen w-64 fixed left-0 top-0 pt-24 hidden md:flex flex-col gap-stack-md py-stack-lg">
 <div class="px-6 mb-stack-md">
 <h2 class="text-title-lg font-title-lg font-bold text-primary">Personal Cabinet</h2>
-<p class="text-body-sm font-body-sm text-secondary opacity-80">Author ID:*******</p>
+<p class="text-body-sm font-body-sm text-secondary opacity-80">Author ID: <?= (int)$user["id"] ?></p>
 </div>
 <nav class="flex flex-col">
 <a href="dashboard.php" class="flex items-center gap-4 py-3 text-primary font-bold border-l-4 border-primary pl-4 scale-95 transition-transform">
