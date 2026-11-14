@@ -58,10 +58,6 @@ $render_comment = function (array $c, bool $is_reply) use ($viewer_id, $viewer_i
 
         <div class="flex justify-between gap-4">
             <span class="font-mono text-sm text-on-surface-variant"><?= e(comment_code($c["id"])) ?></span>
-            <span class="text-sm text-on-surface-variant">
-                <?= date("d M Y", strtotime($c["created_at"])) ?>
-                <?php if (!empty($c["updated_at"])): ?> · edited<?php endif; ?>
-            </span>
         </div>
 
         <p class="mt-2 text-on-surface-variant"><?= nl2br(e($c["comment"])) ?></p>
