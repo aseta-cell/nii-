@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECO-FLOW AR-AI · MashStroy «Asset» × НИИ AR-AI</title>
+<meta name="description" content="ECO-FLOW AR-AI — интеллектуальный закрытый конвейерный комплекс для очистки, сбора и переработки загрязнений. Проектирование и изготовление конвейеров на заказ.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1" rel="stylesheet">
+<style>
+  :root{--navy:#0f2a5f;--blue:#1e3a8a;--sky:#2b7bb9;--gold:#fbbf24;--amber:#b45309;--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--bg:#f8fafc;--card:#fff;--green:#16a34a}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font:400 16px/1.65 Inter,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg)}
+  img{max-width:100%;display:block}
+  a{color:inherit}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+  .ms{font-family:"Material Symbols Outlined";font-weight:400;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:"liga";font-feature-settings:"liga"}
+
+  /* header */
+  .top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top .wrap{display:flex;align-items:center;justify-content:space-between;height:68px;gap:12px}
+  .brand{text-decoration:none;line-height:1.1}
+  .brand b{display:block;font-size:22px;letter-spacing:.02em;color:var(--blue)}
+  .brand small{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .top nav{display:flex;gap:18px;font-size:14px;font-weight:600}
+  .top nav a{text-decoration:none;color:var(--muted)}
+  .top nav a:hover{color:var(--blue)}
+  .back{text-decoration:none;font-size:14px;font-weight:700;color:var(--blue);white-space:nowrap}
+  @media (max-width:860px){.top nav{display:none}}
+
+  /* hero */
+  .hero{background:linear-gradient(125deg,var(--navy) 0%,var(--blue) 55%,var(--amber) 120%);color:#fff;padding:56px 0 64px}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center}
+  .badge{display:inline-block;font:700 11px/1 Inter,sans-serif;letter-spacing:.14em;padding:7px 12px;border-radius:999px;background:var(--gold);color:#1f2937;text-transform:uppercase}
+  .hero h1{font:800 clamp(38px,6vw,64px)/1.05 Inter,sans-serif;margin:16px 0 10px;letter-spacing:-.01em}
+  .hero h1 span{color:#7dd3fc}
+  .hero .lead{font-size:18px;opacity:.92;margin:0 0 22px;max-width:560px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+  .chip{font-size:13px;font-weight:600;padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2)}
+  .btns{display:flex;flex-wrap:wrap;gap:12px}
+  .btn{display:inline-block;text-decoration:none;font-weight:700;font-size:15px;padding:14px 22px;border-radius:12px;transition:transform .15s,background .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-gold{background:var(--gold);color:#111827}
+  .btn-gold:hover{background:#f59e0b}
+  .btn-ghost{border:1.5px solid rgba(255,255,255,.7);color:#fff}
+  .btn-ghost:hover{background:rgba(255,255,255,.1)}
+  .hero figure{margin:0}
+  .zoom{cursor:zoom-in;border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35);background:#0b1f47}
+  .hero figcaption{font-size:12px;opacity:.75;margin-top:8px;text-align:center}
+  @media (max-width:900px){.hero .wrap{grid-template-columns:1fr}.hero{padding:40px 0 48px}}
+
+  /* sections */
+  section{padding:64px 0;scroll-margin-top:68px}
+  section.alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .kicker{font:700 12px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--sky);margin-bottom:10px}
+  h2{font:700 clamp(28px,4vw,40px)/1.15 "Playfair Display",Georgia,serif;margin:0 0 14px;color:var(--navy)}
+  .intro{color:var(--muted);font-size:17px;max-width:780px;margin:0 0 32px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card h3{margin:0 0 6px;font-size:18px;color:var(--navy)}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  .icon{width:48px;height:48px;border-radius:12px;background:#e0ecff;color:var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .icon .ms{font-size:28px}
+
+  /* problem vs solution */
+  .vs .card.bad{border-left:5px solid #ef4444}
+  .vs .card.good{border-left:5px solid var(--green)}
+  .vs ul{margin:10px 0 0;padding-left:20px;color:var(--muted);font-size:15px}
+
+  /* steps */
+  .process-img{margin:0 0 28px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+  @media (max-width:900px){.steps{grid-template-columns:1fr}}
+  .step{position:relative;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px 22px}
+  .step .n{position:absolute;top:-14px;left:18px;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(30,58,138,.35)}
+  .step h3{margin:10px 0 4px;font-size:17px;color:var(--navy)}
+  .step .tag{display:inline-block;font-size:12px;font-weight:700;color:var(--sky);margin-bottom:6px}
+  .step p{margin:0;color:var(--muted);font-size:15px}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:28px;padding:18px;border-radius:16px;background:linear-gradient(90deg,#e0f2fe,#ecfdf5)}
+  .flow .f{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+  .flow .f .ms{color:var(--sky);font-size:26px}
+  .flow .arr{color:#94a3b8;font-size:22px}
+  .result{margin-top:18px;padding:18px 20px;border-radius:14px;background:var(--navy);color:#fff;font-weight:600}
+  .result .ms{color:var(--gold);vertical-align:-5px;margin-right:6px}
+
+  /* robot */
+  .robot-img{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0b1f47}
+  .checks{list-style:none;padding:0;margin:16px 0 0}
+  .checks li{position:relative;padding:6px 0 6px 32px;color:var(--ink)}
+  .checks li::before{content:"check_circle";font-family:"Material Symbols Outlined";position:absolute;left:0;top:5px;font-size:22px;color:var(--green)}
+  .checks li span{color:var(--muted)}
+  .note{font-size:13px;color:var(--muted);margin-top:14px;background:#f1f5f9;border-radius:10px;padding:10px 12px}
+
+  /* lines */
+  .line-card{overflow:hidden;padding:0}
+  .line-card .head{padding:20px 22px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;display:flex;gap:12px;align-items:center}
+  .line-card .head .ms{font-size:32px;color:var(--gold)}
+  .line-card .head h3{color:#fff;margin:0}
+  .line-card .body{padding:18px 22px}
+
+  /* digital */
+  .digital{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  @media (max-width:1000px){.digital{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:520px){.digital{grid-template-columns:1fr}}
+  .digital .card{text-align:left;padding:18px}
+
+  /* status */
+  .status{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .status .card{border-top:4px solid var(--gold)}
+  .status .big{font:800 28px/1.1 Inter,sans-serif;color:var(--blue);margin:2px 0 6px}
+  .partners{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .partners span{font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line)}
+
+  /* custom conveyors */
+  .custom{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center}
+  @media (max-width:900px){.custom{grid-template-columns:1fr}}
+  .custom .zoom{box-shadow:0 18px 40px rgba(15,42,95,.18)}
+
+  /* services */
+  .services{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media (max-width:900px){.services{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:520px){.services{grid-template-columns:1fr}}
+  .svc{display:flex;gap:14px;align-items:flex-start}
+  .svc .icon{margin:0;flex-shrink:0}
+
+  /* market */
+  .market .zoom{background:#fff;box-shadow:none;border:1px solid var(--line)}
+  .bars{margin-top:8px}
+  .bar{margin:12px 0}
+  .bar .lbl{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:5px}
+  .bar .track{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden}
+  .bar .fill{height:100%;border-radius:999px}
+
+  /* cta */
+  .cta{background:linear-gradient(125deg,var(--navy),var(--blue) 60%,#166534 130%);color:#fff;text-align:center;padding:64px 0}
+  .cta h2{color:#fff}
+  .cta p{opacity:.9;max-width:680px;margin:0 auto 24px;font-size:18px}
+  footer{padding:24px 0;text-align:center;font-size:13px;color:var(--muted)}
+
+  /* lightbox */
+  .lb{position:fixed;inset:0;z-index:100;background:rgba(2,6,23,.9);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+  .lb[hidden]{display:none}
+  .lb img{max-height:92vh;max-width:96vw;border-radius:8px}
+  .lb button{position:absolute;top:14px;right:16px;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:28px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a href="about.html" class="brand"><b>ARAI</b><small>Academic Research AI</small></a>
+    <nav>
+      <a href="#how">Как работает</a>
+      <a href="#robot">Робот</a>
+      <a href="#benefits">Преимущества</a>
+      <a href="#status">Статус</a>
+      <a href="#custom">Конвейеры на заказ</a>
+    </nav>
+    <a href="about.html" class="back">← На главную</a>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <span class="badge">MashStroy «Asset» × НИИ AR-AI</span>
+      <h1>ECO-FLOW <span>AR-AI</span></h1>
+      <p class="lead">Интеллектуальный закрытый конвейерный комплекс для очистки, сбора и переработки загрязнений — с полной цифровой интеграцией. Проектируем и конструируем вместе с НИИ инклюзивного инжиниринга «Арай».</p>
+      <div class="chips">
+        <span class="chip">TRL-6 — подтверждён испытаниями</span>
+        <span class="chip">4 патента</span>
+        <span class="chip">Грант АО «НК «ҚТЖ»</span>
+        <span class="chip">Пилоты: Астана Су Арнасы, City Road</span>
+      </div>
+      <div class="btns">
+        <a class="btn btn-gold" href="#how">Как работает конвейер</a>
+        <a class="btn btn-ghost js-contact" href="institutional.html">Обсудить проект</a>
+      </div>
+    </div>
+    <figure>
+      <img class="zoom" src="mashstroy-eco-flow-infographic.jpg" alt="Инфографика ECO-FLOW AR-AI: робот, конвейерная линия из шести модулей, линейка решений, преимущества и статус проекта" loading="eager">
+      <figcaption>Нажмите на картинку, чтобы увеличить</figcaption>
+    </figure>
+  </div>
+</div>
+
+<!-- PROBLEM / SOLUTION -->
+<section>
+  <div class="wrap">
+    <div class="kicker">Зачем это нужно</div>
+    <h2>Грязь и шлам — не отходы, а сырьё</h2>
+    <p class="intro">На железной дороге, в горнодобыче и в городских сетях постоянно образуются загрязнённая вода и шлам: нефтепродукты, взвеси, мусор, отработанный щебень. Обычно их собирают, вывозят и складируют. ECO-FLOW AR-AI перерабатывает их на месте — в одной закрытой линии.</p>
+    <div class="grid2 vs">
+      <div class="card bad">
+        <h3>Как обычно</h3>
+        <p>Несколько разрозненных этапов и подрядчиков.</p>
+        <ul>
+          <li>Открытые отстойники — запах и выбросы</li>
+          <li>Вывоз шлама на полигон — затраты на транспорт и хранение</li>
+          <li>Для очистки пути часто нужно перекрывать движение</li>
+          <li>Вода и твёрдые отходы теряются</li>
+        </ul>
+      </div>
+      <div class="card good">
+        <h3>С ECO-FLOW AR-AI</h3>
+        <p>Один герметичный комплекс от сбора до готового сырья.</p>
+        <ul>
+          <li>Без выбросов и запаха — герметичный корпус</li>
+          <li>Автоматическая очистка и переработка без остановки процесса</li>
+          <li>Робот собирает загрязнения без «окна» на путях</li>
+          <li>На выходе — чистая вода и сырьё для стройматериалов</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="alt" id="how">
+  <div class="wrap">
+    <div class="kicker">Как работает</div>
+    <h2>Шесть модулей одной линии</h2>
+    <p class="intro">Загрязнённая вода и шлам (от железной дороги, горных предприятий, городских стоков) подаются на вход комплекса. Дальше их по очереди проводит конвейер — через шесть модулей, каждый из которых делает свою часть работы.</p>
+    <figure class="process-img"><img class="zoom" src="mashstroy-eco-flow-conveyor.jpg" alt="Конвейерная линия ECO-FLOW AR-AI в разрезе: шесть модулей от подачи шлама до выгрузки сырья" loading="lazy" style="width:100%"></figure>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><span class="tag">Транспортировка</span><h3>Конвейер на воздушной подушке</h3><p>Лента движется на тонком слое воздуха, а не по роликам. Меньше трения — меньше износ и энергозатраты, линия работает дольше без ремонта.</p></div>
+      <div class="step"><div class="n">2</div><span class="tag">Очистка воды</span><h3>Микрофлотация</h3><p>Мельчайшие пузырьки воздуха прилипают к каплям нефтепродуктов и взвешенным частицам и поднимают их на поверхность, где они снимаются. Вода становится чистой.</p></div>
+      <div class="step"><div class="n">3</div><span class="tag">Обезвоживание</span><h3>Вертикальная кассета-выжим</h3><p>Осадок (шлам) отжимается в вертикальных кассетах. Вода уходит обратно на очистку, а шлам становится плотным и компактным.</p></div>
+      <div class="step"><div class="n">4</div><span class="tag">Сушка</span><h3>Термосушка</h3><p>Шлам досушивается до влажности 10–15%. Сухую массу проще хранить, перевозить и использовать как сырьё.</p></div>
+      <div class="step"><div class="n">5</div><span class="tag">Упаковка</span><h3>Упаковка шлама</h3><p>Готовая масса упаковывается в морозостойкий целлофан с сеткой — не размокает, не пылит и выдерживает зиму под открытым небом.</p></div>
+      <div class="step"><div class="n">6</div><span class="tag">Выход</span><h3>Выгрузка вторичного сырья</h3><p>Упакованное сырьё выгружается на поверхность — готово к отправке на производство строительных материалов.</p></div>
+    </div>
+    <div class="result"><span class="ms">verified</span>Результат: очищенная вода — на повторное использование, а вторичное сырьё — для строительных материалов.</div>
+    <div class="flow">
+      <div class="f"><span class="ms">water_drop</span>Очищенная вода — обратно в оборотный цикл</div><span class="arr">›</span>
+      <div class="f"><span class="ms">view_in_ar</span>Стройматериалы: плиты, блоки, кирпич</div><span class="arr">›</span>
+      <div class="f"><span class="ms">landscape</span>Рекультивация и благоустройство</div><span class="arr">›</span>
+      <div class="f"><span class="ms">eco</span>Меньше экологической нагрузки, ESG-эффект</div>
+    </div>
+  </div>
+</section>
+
+<!-- ROBOT -->
+<section id="robot">
+  <div class="wrap grid2">
+    <div class="robot-img"><img class="zoom" src="mashstroy-robot-arai-revizor.jpg" alt="Робот «Арай Ревизор» — мобильный модуль очистки на железнодорожном пути" loading="lazy" style="width:100%"></div>
+    <div>
+      <div class="kicker">Сбор загрязнений</div>
+      <h2>Робот «Арай Ревизор»</h2>
+      <p class="intro" style="margin-bottom:0">Мобильный модуль для очистки щебня, шпальных ящиков и путевой инфраструктуры — без открытия «окна», то есть без остановки движения поездов на время работ. Робот — это «руки» комплекса: он собирает загрязнения прямо на пути и подаёт их на конвейер.</p>
+      <ul class="checks">
+        <li>Диагностика <span>— ИИ и датчики находят загрязнённые участки</span></li>
+        <li>Очистка от мусора и нефтестоков <span>— щебень и шпальные ящики</span></li>
+        <li>Сбор и подача на конвейер <span>— дальше всё перерабатывает линия</span></li>
+      </ul>
+      <div class="note">«Окно» на железной дороге — время, когда участок закрывают для поездов ради ремонта. Чем меньше окон, тем меньше задержек и потерь.</div>
+    </div>
+  </div>
+</section>
+
+<!-- LINES -->
+<section class="alt">
+  <div class="wrap">
+    <div class="kicker">Где применяется</div>
+    <h2>Линейка решений ECO-FLOW AR-AI</h2>
+    <p class="intro">Комплекс модульный: одна и та же технология собирается под разные объекты.</p>
+    <div class="grid3">
+      <div class="card line-card"><div class="head"><span class="ms">train</span><h3>ЖД-путь</h3></div><div class="body"><p>Очистка щебня и шпальных ящиков, сбор нефтестоков с путевой инфраструктуры — вместе с роботом «Арай Ревизор».</p></div></div>
+      <div class="card line-card"><div class="head"><span class="ms">landslide</span><h3>Горная промышленность</h3></div><div class="body"><p>Хвостохранилища, шлам и вода с горных предприятий: обезвоживание, очистка воды и выпуск сырья.</p></div></div>
+      <div class="card line-card"><div class="head"><span class="ms">location_city</span><h3>Городские сети</h3></div><div class="body"><p>КНС, ливневая и хозяйственно-бытовая очистка: закрытая переработка без запаха прямо на объекте.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DIGITAL -->
+<section>
+  <div class="wrap">
+    <div class="kicker">Интеграция и цифровое управление</div>
+    <h2>Комплексом управляют с компьютера</h2>
+    <p class="intro">Каждый модуль оснащён датчиками, а система управления передаёт данные операторам и в учётные системы предприятия.</p>
+    <div class="digital">
+      <div class="card"><div class="icon"><span class="ms">memory</span></div><h3>ИИ-мониторинг</h3><p>Отслеживает работу линии и состояние загрязнений (TRL-6).</p></div>
+      <div class="card"><div class="icon"><span class="ms">sensors</span></div><h3>Датчики</h3><p>Уровень, давление, расход и состав воды.</p></div>
+      <div class="card"><div class="icon"><span class="ms">monitor_heart</span></div><h3>SCADA / BMS</h3><p>Удалённый контроль и управление комплексом.</p></div>
+      <div class="card"><div class="icon"><span class="ms">query_stats</span></div><h3>Аналитика</h3><p>Отчётность по ESG и KPI для руководства.</p></div>
+      <div class="card"><div class="icon"><span class="ms">hub</span></div><h3>Интеграция с АСУ</h3><p>Подключение к системам управления предприятия.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFITS -->
+<section class="alt" id="benefits">
+  <div class="wrap grid2">
+    <div>
+      <div class="kicker">Модульная закрытая система</div>
+      <h2>Почему это удобно</h2>
+      <ul class="checks">
+        <li>Без выбросов и запаха</li>
+        <li>Герметичный корпус</li>
+        <li>Автоматическая очистка и переработка</li>
+        <li>Без остановки процесса</li>
+        <li>Для промышленных и городских объектов</li>
+      </ul>
+    </div>
+    <div>
+      <div class="kicker">Ключевые преимущества</div>
+      <h2>Что получает заказчик</h2>
+      <ul class="checks">
+        <li>Комплексная очистка <span>— и вода, и твёрдые отходы в одной линии</span></li>
+        <li>Интеграция в существующую инфраструктуру <span>— не нужно перестраивать объект</span></li>
+        <li>Высокая эффективность и низкие эксплуатационные затраты</li>
+        <li>Модульное исполнение и масштабирование <span>— от пилота до большого объекта</span></li>
+        <li>Экологическая и экономическая выгода (ESG)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS -->
+<section id="status">
+  <div class="wrap">
+    <div class="kicker">Текущий статус проекта</div>
+    <h2>Не идея, а проверенная разработка</h2>
+    <div class="status">
+      <div class="card"><div class="big">TRL-6</div><p>Подтверждён испытаниями: ИМАШ НАН КР, City Road, Астана Су Арнасы, Wabtec.</p></div>
+      <div class="card"><div class="big">4 патента</div><p>№486832, №483970, №483969, №507933.</p></div>
+      <div class="card"><div class="big">Scopus</div><p>Научные статьи — поданы и опубликованы.</p></div>
+      <div class="card"><div class="big">Пилоты</div><p>Внедрения и договоры: Астана Су Арнасы, City Road, ТОО WEST STEEL 04, SharifConstruction.</p></div>
+      <div class="card"><div class="big">Грант</div><p>АО «НК «ҚТЖ» — на разработку и внедрение, пилотный проект на железнодорожной инфраструктуре.</p></div>
+    </div>
+    <div class="partners"><span>Астана Су Арнасы — промышленное внедрение</span><span>АО «НК «ҚТЖ»</span><span>City Road</span><span>Wabtec</span><span>ИМАШ НАН КР</span><span>ТОО WEST STEEL 04</span><span>SharifConstruction</span></div>
+  </div>
+</section>
+
+<!-- CUSTOM CONVEYORS -->
+<section class="alt" id="custom">
+  <div class="wrap custom">
+    <img class="zoom" src="mashstroy-custom-conveyors.jpg" alt="Конвейеры на заказ: проектируем, конструируем, изготавливаем" loading="lazy">
+    <div>
+      <div class="kicker">MashStroy «Asset»</div>
+      <h2>Конвейеры на заказ</h2>
+      <p class="intro" style="margin-bottom:12px">Кроме ECO-FLOW AR-AI, делаем обычные промышленные конвейеры — ленточные и роликовые — под конкретную задачу.</p>
+      <ul class="checks">
+        <li>Проектируем <span>— изучаем ваш процесс и груз</span></li>
+        <li>Конструируем <span>— разрабатываем конструкцию и чертежи</span></li>
+        <li>Изготавливаем <span>— готовый конвейер для вашего объекта</span></li>
+        <li>Под ваш процесс и нужные размеры</li>
+        <li>Различные типы и исполнения</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section>
+  <div class="wrap">
+    <div class="kicker">Полный цикл</div>
+    <h2>Мы проектируем и конструируем</h2>
+    <p class="intro">Ведём проект от первого расчёта до работы на объекте и дальше.</p>
+    <div class="services">
+      <div class="card svc"><div class="icon"><span class="ms">settings</span></div><div><h3>Проектирование</h3><p>ТЭО, рабочая документация (РД), сметы.</p></div></div>
+      <div class="card svc"><div class="icon"><span class="ms">factory</span></div><div><h3>Конструирование и изготовление</h3><p>Разработка конструкции и выпуск оборудования.</p></div></div>
+      <div class="card svc"><div class="icon"><span class="ms">build</span></div><div><h3>Монтаж и интеграция</h3><p>Установка на объекте и подключение к инфраструктуре.</p></div></div>
+      <div class="card svc"><div class="icon"><span class="ms">engineering</span></div><div><h3>Пусконаладка</h3><p>Запуск, настройка и проверка всех модулей.</p></div></div>
+      <div class="card svc"><div class="icon"><span class="ms">support_agent</span></div><div><h3>Сервис и сопровождение</h3><p>Эксплуатационное сопровождение и обслуживание.</p></div></div>
+      <div class="card svc"><div class="icon"><span class="ms">autorenew</span></div><div><h3>Модернизация</h3><p>Обновление и масштабирование действующих линий.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- MARKET -->
+<section class="alt market">
+  <div class="wrap grid2">
+    <div>
+      <div class="kicker">Анализ рынка</div>
+      <h2>Кто работает с конвейерами в Казахстане</h2>
+      <p class="intro" style="margin-bottom:10px">Мы изучили 12 компаний. Большинство занимается чем-то одним: производством, монтажом, сервисом или автоматизацией. ECO-FLOW AR-AI объединяет все эти направления в одном проекте — и добавляет очистку и переработку загрязнений.</p>
+      <div class="bars">
+        <div class="bar"><div class="lbl"><span>Производство и разработка конвейерного оборудования</span><span>5</span></div><div class="track"><div class="fill" style="width:41.7%;background:#0f2f5f"></div></div></div>
+        <div class="bar"><div class="lbl"><span>Инжиниринг и монтаж промышленных линий</span><span>3</span></div><div class="track"><div class="fill" style="width:25%;background:#2b7bb9"></div></div></div>
+        <div class="bar"><div class="lbl"><span>Поставки и обслуживание конвейерных систем</span><span>2</span></div><div class="track"><div class="fill" style="width:16.7%;background:#74b3d8"></div></div></div>
+        <div class="bar"><div class="lbl"><span>Автоматизация и специализированные решения</span><span>2</span></div><div class="track"><div class="fill" style="width:16.7%;background:#f2ae55"></div></div></div>
+      </div>
+      <p class="note">Предварительная выборка, 14.11.2026. Это структура изученных компаний, а не доли всего рынка.</p>
+    </div>
+    <img class="zoom" src="mashstroy-competitors-chart.jpg" alt="Диаграмма: структура исследованной выборки конкурентов ECO-FLOW AR-AI, 12 компаний" loading="lazy">
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="wrap">
+    <h2>ECO-FLOW AR-AI</h2>
+    <p>Инженерное решение для чистой инфраструктуры, переработки отходов и устойчивого развития. Расскажите о своём объекте — подберём решение.</p>
+    <a class="btn btn-gold js-contact" href="institutional.html">Обсудить проект</a>
+  </div>
+</div>
+
+</main>
+
+<footer>© 2026 MashStroy «Asset» × НИИ AR-AI (Инклюзивный инжиниринг «Арай») · <a href="about.html">ARAI — Academic Research AI</a></footer>
+
+<div class="lb" id="lb" hidden><button type="button" aria-label="Закрыть">&times;</button><img alt=""></div>
+
+<script>
+(function () {
+  // ==== НАСТРОЙКИ ====
+  var CONTACT_LINK = "institutional.html"; // куда ведёт «Обсудить проект», например "https://wa.me/77000000000"
+  // ===================
+  document.querySelectorAll(".js-contact").forEach(function (a) { a.href = CONTACT_LINK; });
+
+  var lb = document.getElementById("lb"), big = lb.querySelector("img");
+  document.querySelectorAll("img.zoom").forEach(function (img) {
+    img.addEventListener("click", function () { big.src = img.src; big.alt = img.alt; lb.hidden = false; });
+  });
+  function close() { lb.hidden = true; big.src = ""; }
+  lb.addEventListener("click", close);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+</body>
+</html>

@@ -446,6 +446,8 @@ $statuses = ["Submitted", "Under Review", "Accepted", "Revision", "Rejected", "P
                 Status: <strong><?= e($row["status"]) ?></strong>
             </p>
 
+            <?php include "visibility-buttons.php"; ?>
+
             <p class="mt-1">
                 Reviewer: <?= e($row["reviewer_name"] ?? "Not assigned") ?>
                 · Decision: <?= e($row["review_status"] ?? "Waiting for review") ?>

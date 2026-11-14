@@ -348,6 +348,8 @@ Review Article
 
 </a>
 
+<?php include "visibility-buttons.php"; ?>
+
 </div>
 
 </div>

@@ -41,6 +41,9 @@ CREATE TABLE submissions (
     journal VARCHAR(200),
     filename VARCHAR(255),
     status VARCHAR(50) NOT NULL DEFAULT 'Submitted',
+    visibility VARCHAR(10) NOT NULL DEFAULT 'public',   -- public / private (set by reviewer or editor)
+    visibility_by VARCHAR(150) NULL,
+    visibility_at DATETIME NULL,
     reviewer_id INT NULL,
     doi VARCHAR(150),
     views INT NOT NULL DEFAULT 0,
