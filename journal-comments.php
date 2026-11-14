@@ -38,29 +38,26 @@ foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $c) {
     }
 }
 
-// Comments are anonymous: each person gets a number on this journal ("Reader 1", "Reader 2", ...)
-// so a conversation can be followed without showing anyone's name.
-$reader_numbers = [];
-foreach (array_merge($top, ...array_values($replies)) as $c) {
-    $uid = (int)$c["user_id"];
-    if (!isset($reader_numbers[$uid])) {
-        $reader_numbers[$uid] = count($reader_numbers) + 1;
-    }
+// Comments show no names at all — only the text and a random-looking code
+// of the comment itself, like "#8k98439" (always the same for one comment).
+function comment_code($id)
+{
+    $hash = md5("nii-comment-" . (int)$id);
+    $letters = "abcdefghjkmnpqrstuvwxyz";
+    return "#" . (hexdec($hash[0]) % 9 + 1)
+        . $letters[hexdec(substr($hash, 1, 2)) % strlen($letters)]
+        . str_pad((string)(hexdec(substr($hash, 3, 6)) % 100000), 5, "0", STR_PAD_LEFT);
 }
 
 $top = array_reverse($top); // newest conversations first
 
-$render_comment = function (array $c, bool $is_reply) use ($viewer_id, $viewer_is_editor, $journal, $reader_numbers) {
+$render_comment = function (array $c, bool $is_reply) use ($viewer_id, $viewer_is_editor, $journal) {
     $mine = $viewer_id && (int)$c["user_id"] === $viewer_id;
-    $label = "Reader " . $reader_numbers[(int)$c["user_id"]] . " · Читатель " . $reader_numbers[(int)$c["user_id"]];
     ?>
     <div class="<?= $is_reply ? "ml-6 md:ml-10 pl-4 border-l-2 border-outline-variant mt-4" : "" ?>" id="comment-<?= (int)$c["id"] ?>">
 
         <div class="flex justify-between gap-4">
-            <strong>
-                <?= e($label) ?>
-                <?php if ($mine): ?><span class="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-secondary-container">You · Вы</span><?php endif; ?>
-            </strong>
+            <span class="font-mono text-sm text-on-surface-variant"><?= e(comment_code($c["id"])) ?></span>
             <span class="text-sm text-on-surface-variant">
                 <?= date("d M Y", strtotime($c["created_at"])) ?>
                 <?php if (!empty($c["updated_at"])): ?> · edited<?php endif; ?>
@@ -111,10 +108,6 @@ $render_comment = function (array $c, bool $is_reply) use ($viewer_id, $viewer_i
     <?php
 };
 ?>
-
-    <p class="text-sm text-on-surface-variant mb-4">
-        🔒 Comments are anonymous — names are never shown. · Комментарии анонимные — имена не показываются.
-    </p>
 
     <div class="space-y-5">
 
