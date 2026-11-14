@@ -29,10 +29,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $comments = trim($_POST["comments"] ?? "");
     $status = $_POST["status"] ?? "";
+    $visibility = $_POST["visibility"] ?? "";
 
-    if ($comments === "" || !isset($decisions[$status])) {
+    if ($comments === "" || !isset($decisions[$status]) || !in_array($visibility, ["public", "private"], true)) {
 
-        $message = "Please choose a decision and write your comments.";
+        $message = "Please choose a decision, public or not public, and write your comments.";
 
     } else {
 
@@ -43,9 +44,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt->bind_param("iisss", $id, $reviewer["id"], $reviewer["fullname"], $status, $comments);
         $stmt->execute();
 
-        // The manuscript takes the reviewer's decision
-        $stmt = $conn->prepare("UPDATE submissions SET status = ? WHERE id = ?");
-        $stmt->bind_param("si", $status, $id);
+        // The manuscript takes the reviewer's decision and visibility
+        $stmt = $conn->prepare("
+            UPDATE submissions
+            SET status = ?, visibility = ?, visibility_by = ?, visibility_at = NOW()
+            WHERE id = ?
+        ");
+        $stmt->bind_param("sssi", $status, $visibility, $reviewer["fullname"], $id);
         $stmt->execute();
 
         // Special (family) account: accepted article needs no payment
@@ -102,6 +107,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <?= e($article["status"]) ?>
         </p>
 
+        <p class="mb-2">
+            <strong>Visibility:</strong>
+            <?= e(visibility_label($article["visibility"])) ?>
+        </p>
+
         <?php if (!empty($article["keywords"])): ?>
         <p class="mb-2">
             <strong>Keywords:</strong>
@@ -152,6 +162,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <?php endforeach; ?>
 
             </select>
+
+            <?php $chosen = $_POST["visibility"] ?? $article["visibility"]; ?>
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 font-semibold">Publication · Публикация</legend>
+                <label class="flex items-start gap-3 py-2 cursor-pointer">
+                    <input type="radio" name="visibility" value="public" required class="mt-1" <?= $chosen === "public" ? "checked" : "" ?>>
+                    <span><strong>Approve public · Одобрить публично</strong><br>
+                    <span class="text-gray-600 text-sm">After publication anyone can find and read it in the archive.</span></span>
+                </label>
+                <label class="flex items-start gap-3 py-2 cursor-pointer">
+                    <input type="radio" name="visibility" value="private" required class="mt-1" <?= $chosen === "private" ? "checked" : "" ?>>
+                    <span><strong>Not public · Не публично</strong><br>
+                    <span class="text-gray-600 text-sm">Hidden from the archive and search — only the author, the reviewer and the editors can open it.</span></span>
+                </label>
+            </fieldset>
 
             <button type="submit" class="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800">
                 Send Review

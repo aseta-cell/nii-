@@ -12,6 +12,7 @@ FROM submissions
 JOIN users
 ON submissions.user_id = users.id
 WHERE submissions.status = 'Published'
+AND submissions.visibility = 'public'
 ";
 
 $types = "";
@@ -428,6 +429,8 @@ class="<?= $journal === $journal_name ? "font-bold text-primary" : "text-on-surf
 <?php endwhile; ?>
 
 <?php endif; ?>
+
+<?= sum_committee_notice() ?>
 
 </main>
 <!-- Footer -->

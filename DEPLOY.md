@@ -198,6 +198,8 @@ mysql journal < migration-001-free-access.sql
 mysql journal < migration-002-patents.sql
 ```
 
+Колонка «публичная / не публичная статья» (`migration-003-visibility.sql`) добавляется **сама** при первом открытии сайта — ничего запускать не нужно.
+
 ## Резервная копия базы
 
 ```bash

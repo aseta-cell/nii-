@@ -143,6 +143,10 @@
                 Archive
             </a>
 
+            <a href="mashstroy.html" class="hover:text-primary transition">
+                MashStroy
+            </a>
+
         </div>
 
         <div class="flex items-center gap-stack-md">
@@ -193,6 +197,20 @@ Excellence in Scientific Publishing</h1>
 
 
 </div></div> </div> </section>
+<!-- ===== MASHSTROY: рекламный баннер ===== -->
+<section id="mashstroy-banner" class="mash-banner" aria-label="MASHSTROY">
+  <div class="mash-banner__inner">
+    <a class="mash-banner__img" href="mashstroy.html"><img src="mashstroy-eco-flow-infographic.jpg" alt="ECO-FLOW AR-AI" loading="lazy"></a>
+    <div class="mash-banner__text">
+      <span class="mash-badge">MashStroy «Asset» × НИИ AR-AI</span>
+      <h2 class="mash-title">ECO-FLOW AR-AI</h2>
+      <p class="mash-desc">Интеллектуальный закрытый конвейерный комплекс для очистки, сбора и переработки загрязнений: на выходе — чистая вода и сырьё для стройматериалов. TRL-6, 4 патента, грант АО «НК «ҚТЖ». А ещё — конвейеры на заказ.<br>
+      <span class="mash-en">Smart closed-loop conveyor system for cleaning and recycling industrial waste.</span></p>
+    </div>
+    <a class="mash-btn js-mash-link" href="mashstroy.html">Подробнее · Learn more →</a>
+  </div>
+</section>
+<!-- ===== /MASHSTROY ===== -->
 <section
     id="editorial-content"
     class="py-16"
@@ -626,6 +644,13 @@ Contact
 </table>
 </div>
 </section>
+<!-- SUM COMMITTEE notice -->
+<section id="sum-committee" style="padding:0 16px 48px">
+  <div style="max-width:1200px;margin:0 auto;padding:18px 20px;border-left:4px solid #b45309;background:#fffbeb;border-radius:8px;font:14px/1.6 Inter,system-ui,sans-serif;color:#422006">
+    <strong>SUM COMMITTEE.</strong> If complaints are received about published articles, the SUM COMMITTEE reviews each such article every year and, where incorrect or unverified data are found, makes corrections to the article.<br>
+    <strong>SUM COMMITTEE.</strong> Если на опубликованные статьи поступают жалобы, комитет SUM COMMITTEE ежегодно рассматривает каждую такую статью и при обнаружении неправильных или непроверенных данных вносит исправления в статью.
+  </div>
+</section>
 </main>
 
 
@@ -853,4 +878,76 @@ async function loadEditorialContent() {
 loadEditorialContent();
 
 </script>
+
+<!-- ===== MASHSTROY: всплывающее окно ===== -->
+<div id="mashstroy-popup" class="mash-popup" role="dialog" aria-modal="true" aria-labelledby="mash-popup-title" hidden>
+  <div class="mash-popup__card">
+    <button type="button" class="mash-popup__close" aria-label="Close">&times;</button>
+    <img class="mash-popup__img" src="mashstroy-custom-conveyors.jpg" alt="Конвейеры на заказ: проектируем, конструируем, изготавливаем" loading="lazy">
+    <span class="mash-badge">MashStroy «Asset» × НИИ AR-AI</span>
+    <h3 id="mash-popup-title" class="mash-title">ECO-FLOW AR-AI</h3>
+    <p class="mash-desc">Закрытый конвейерный комплекс для очистки и переработки загрязнений и конвейеры на заказ — проектируем, конструируем, изготавливаем.</p>
+    <a class="mash-btn js-mash-link" href="mashstroy.html">Подробнее →</a>
+  </div>
+</div>
+
+<style>
+  .mash-banner{background:linear-gradient(120deg,#0f2a5f 0%,#1e3a8a 55%,#b45309 100%);color:#fff;padding:32px 16px}
+  .mash-banner__inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .mash-banner__img{flex:0 0 300px;max-width:100%;border-radius:14px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.3);display:block}
+  .mash-banner__img img{display:block;width:100%;height:auto}
+  .mash-popup__img{display:block;width:100%;height:auto;border-radius:12px;margin:0 0 16px}
+  .mash-en{font-size:13px;opacity:.75}
+  .mash-banner__text{flex:1 1 320px;min-width:0}
+  .mash-badge{display:inline-block;font:700 11px/1 Inter,system-ui,sans-serif;letter-spacing:.12em;padding:6px 10px;border-radius:999px;background:#fbbf24;color:#1f2937}
+  .mash-title{font:700 32px/1.15 "Playfair Display",Georgia,serif;margin:10px 0 6px;letter-spacing:.04em}
+  .mash-desc{font:400 15px/1.6 Inter,system-ui,sans-serif;opacity:.92;margin:0}
+  .mash-btn{box-sizing:border-box;display:inline-block;background:#fbbf24;color:#111827;font:700 14px/1 Inter,system-ui,sans-serif;padding:14px 22px;border-radius:12px;text-decoration:none;white-space:nowrap;transition:transform .15s,background .15s}
+  .mash-btn:hover{background:#f59e0b;transform:translateY(-1px)}
+  .mash-popup{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+  .mash-popup[hidden]{display:none}
+  .mash-popup__card{position:relative;max-width:440px;width:100%;max-height:calc(100vh - 32px);overflow:auto;border-radius:20px;padding:22px 22px 24px;text-align:center;color:#fff;background:linear-gradient(150deg,#0f2a5f,#1e3a8a 60%,#b45309);box-shadow:0 24px 60px rgba(0,0,0,.35);animation:mash-in .3s ease-out}
+  .mash-popup__card .mash-desc{margin-bottom:20px}
+  .mash-popup__close{position:absolute;top:10px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:24px;line-height:1;cursor:pointer}
+  .mash-popup__close:hover{background:rgba(255,255,255,.3)}
+  @keyframes mash-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+  @media (max-width:640px){.mash-title{font-size:26px}.mash-btn{width:100%;text-align:center}.mash-banner__img{flex-basis:100%}}
+</style>
+
+<script>
+(function () {
+  // ==== НАСТРОЙКИ РЕКЛАМЫ MASHSTROY ====
+  var MASH_LINK = "mashstroy.html"; // страница проекта (или сайт MashStroy, например "https://mashstroy.kz")
+  var POPUP_DELAY_SECONDS = 3;  // через сколько секунд показать окно
+  var POPUP_EVERY_HOURS = 24;   // как часто показывать окно одному посетителю
+  // =====================================
+
+  document.querySelectorAll(".js-mash-link").forEach(function (a) {
+    a.href = MASH_LINK;
+  });
+
+  var popup = document.getElementById("mashstroy-popup");
+  if (!popup) return;
+  var KEY = "mashstroy_popup_seen";
+
+  function seenRecently() {
+    try { return Date.now() - Number(localStorage.getItem(KEY) || 0) < POPUP_EVERY_HOURS * 3600 * 1000; }
+    catch (e) { return false; }
+  }
+  function close() {
+    popup.hidden = true;
+    try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+  }
+
+  popup.querySelector(".mash-popup__close").addEventListener("click", close);
+  popup.addEventListener("click", function (e) { if (e.target === popup) close(); });
+  popup.querySelector(".js-mash-link").addEventListener("click", close);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !popup.hidden) close(); });
+
+  if (!seenRecently()) {
+    setTimeout(function () { popup.hidden = false; }, POPUP_DELAY_SECONDS * 1000);
+  }
+})();
+</script>
+<!-- ===== /MASHSTROY ===== -->
 </body></html>

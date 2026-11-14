@@ -18,7 +18,8 @@ $stmt->execute();
 
 $article = $stmt->get_result()->fetch_assoc();
 
-if (!$article) {
+// A non-public article opens only for its author, reviewer and editors
+if (!$article || ($article["visibility"] === "private" && !can_see_private_article($article))) {
     http_response_code(404);
     die("Article not found.");
 }
@@ -62,6 +63,14 @@ $is_pdf = strtolower(pathinfo((string)$article["filename"], PATHINFO_EXTENSION))
         <span class="bg-blue-700 text-white text-sm px-4 py-2 rounded">
             Published Article
         </span>
+
+        <?php if ($article["visibility"] === "private"): ?>
+        <div class="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-300 text-amber-900">
+            <strong>Not public · Не публичная статья.</strong>
+            It is hidden from the archive and search — only the author, the reviewer and the editors can open it.
+            Скрыта из архива и поиска — её видят только автор, рецензент и редакция.
+        </div>
+        <?php endif; ?>
 
         <h1 class="text-5xl font-bold mt-6 mb-6">
             <?= e($article["title"]) ?>
@@ -216,6 +225,8 @@ class="text-blue-600 hover:underline">
     </div>
 
 </div>
+
+<?= sum_committee_notice() ?>
 
 <?php if ($pdf !== "" && $is_pdf): ?>
         <h2 class="text-3xl font-bold mb-6">

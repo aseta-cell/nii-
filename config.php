@@ -93,6 +93,17 @@ try {
         : "Database connection failed. Please try again later.");
 }
 
+// Article visibility column (added automatically on first run, see migration-003-visibility.sql)
+$has_visibility = $conn->query("SHOW COLUMNS FROM submissions LIKE 'visibility'");
+if ($has_visibility && $has_visibility->num_rows === 0) {
+    $conn->query("
+        ALTER TABLE submissions
+            ADD COLUMN visibility VARCHAR(10) NOT NULL DEFAULT 'public' AFTER status,
+            ADD COLUMN visibility_by VARCHAR(150) NULL AFTER visibility,
+            ADD COLUMN visibility_at DATETIME NULL AFTER visibility_by
+    ");
+}
+
 // Session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -221,6 +232,45 @@ function money($amount)
     global $settings;
 
     return number_format((float)$amount, 2) . " " . $settings["currency"];
+}
+
+// Article visibility: "public" — anyone can find and read it in the archive;
+// "private" — only the author, the assigned reviewer and editors can open it.
+function visibility_label($visibility)
+{
+    return $visibility === "private" ? "Not public · Не публичная" : "Public · Публичная";
+}
+
+// May the signed-in user open this article although it is not public?
+function can_see_private_article(array $article)
+{
+    global $conn;
+
+    if (!isset($_SESSION["user_id"])) {
+        return false;
+    }
+
+    $user_id = (int)$_SESSION["user_id"];
+
+    if ($user_id === (int)$article["user_id"] || $user_id === (int)($article["reviewer_id"] ?? 0)) {
+        return true;
+    }
+
+    $stmt = $conn->prepare("SELECT role FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+
+    return $row && $row["role"] === "editor";
+}
+
+// Notice shown next to published articles
+function sum_committee_notice()
+{
+    return '<div style="margin:24px 0;padding:16px 18px;border-left:4px solid #b45309;background:#fffbeb;border-radius:8px;font-size:14px;line-height:1.6;color:#422006">'
+        . '<strong>SUM COMMITTEE.</strong> If complaints are received about published articles, the SUM COMMITTEE reviews each such article every year and, where incorrect or unverified data are found, makes corrections to the article.<br>'
+        . '<strong>SUM COMMITTEE.</strong> Если на опубликованные статьи поступают жалобы, комитет SUM COMMITTEE ежегодно рассматривает каждую такую статью и при обнаружении неправильных или непроверенных данных вносит исправления в статью.'
+        . '</div>';
 }
 
 // True when the entered code is the special (family) access password.
