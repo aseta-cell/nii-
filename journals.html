@@ -683,6 +683,27 @@ SUBMIT NOW
             lastScroll = currentScroll;
         });
     </script>
+<script>
+// Number of comments under every journal card
+fetch("journal-stats.php")
+  .then(function (r) { return r.json(); })
+  .then(function (counts) {
+    document.querySelectorAll("div.relative.bg-surface").forEach(function (card) {
+      var link = card.querySelector('a[href$=".php"]');
+      var page = link && link.getAttribute("href");
+      if (!page || !(page in counts)) return;
+      var n = counts[page];
+      var line = document.createElement("a");
+      line.href = page + "#comments";
+      line.style.cssText = "display:flex;align-items:center;gap:6px;font-size:14px;color:#44474e;text-decoration:none;margin:-8px 0 12px";
+      line.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">chat_bubble</span>' +
+        '<span>' + n + (n === 1 ? " comment" : " comments") + '</span>';
+      var submit = card.querySelector(".p-stack-md a:last-of-type");
+      if (submit) submit.parentNode.insertBefore(line, submit);
+    });
+  })
+  .catch(function () {});
+</script>
 </body></html>
 
 
