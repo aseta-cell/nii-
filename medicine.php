@@ -22,7 +22,6 @@ $stmt->execute();
 $like_result = $stmt->get_result()->fetch_assoc();
 
 $like_count = $like_result["total"];
-$like_count += 15709; // ваше подтверждённое старое число
 
 // -------------------------
 // COMMENT COUNT
@@ -43,7 +42,6 @@ $stmt->execute();
 $comment_result = $stmt->get_result()->fetch_assoc();
 
 $comment_count = $comment_result["total"];
-$comment_count += 543;
 
 // -------------------------
 // VIEW COUNT
@@ -61,7 +59,6 @@ $stmt->execute();
 $view_result = $stmt->get_result()->fetch_assoc();
 
 $view_count = $view_result["total"];
-$view_count += 48700;
 
 // -------------------------
 // CHECK LIKE
