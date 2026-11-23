@@ -1,0 +1,956 @@
+<?php
+
+// Study Hub (special-access accounts only): planner, tracker, SAT, IMO, IB grades, corrections.
+
+require_once "config.php";
+
+require_login();
+
+$user_id = (int)$_SESSION["user_id"];
+
+$stmt = $conn->prepare("SELECT id, fullname, free_access FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$me = $stmt->get_result()->fetch_assoc();
+
+require_once "study_lib.php";
+
+$tabs = ["overview", "planner", "tracker", "sat", "imo", "grades", "corrections"];
+$tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
+$today = date("Y-m-d");
+
+function study_head($title)
+{
+    global $study_lang;
+    ?>
+<!DOCTYPE html>
+<html lang="<?= $study_lang ?>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><?= e($title) ?></title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800">
+    <?php
+}
+
+function lang_switch()
+{
+    global $study_lang, $tab;
+    foreach (["en" => "EN", "ru" => "RU"] as $code => $label) {
+        $active = $study_lang === $code;
+        echo '<a href="?tab=' . e($tab) . '&lang=' . $code . '" class="px-2 py-1 rounded ' . ($active ? "bg-slate-900 text-white" : "bg-white border") . '">' . $label . '</a>';
+    }
+}
+
+// ---------- special access only ----------
+
+if (!$me || !$me["free_access"]) {
+    http_response_code(403);
+    study_head(t("hub"));
+    ?>
+    <div class="max-w-xl mx-auto py-16 px-6">
+        <div class="flex justify-end gap-2 text-sm mb-4"><?php lang_switch(); ?></div>
+        <div class="bg-white rounded-xl shadow p-8">
+            <h1 class="text-2xl font-bold mb-3"><?= e(t("no_access_title")) ?></h1>
+            <p class="text-slate-600 mb-6"><?= e(t("no_access_text")) ?></p>
+            <a href="account-settings.php" class="inline-block bg-slate-900 text-white px-5 py-2 rounded-lg"><?= e(t("account_settings")) ?></a>
+            <a href="dashboard.php" class="inline-block ml-3 text-blue-700"><?= e(t("back")) ?></a>
+        </div>
+    </div>
+    </body></html>
+    <?php
+    exit;
+}
+
+// ---------- settings row ----------
+
+$conn->query("INSERT IGNORE INTO study_settings (user_id) VALUES ($user_id)");
+$settings_row = $conn->query("SELECT * FROM study_settings WHERE user_id = $user_id")->fetch_assoc();
+
+
+// =================================================================
+// ACTIONS
+// =================================================================
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    check_csrf();
+
+    $act = (string)($_POST["act"] ?? "");
+    $id = (int)($_POST["id"] ?? 0);
+    $anchor = "";
+
+    // Run a prepared statement that always includes "AND user_id = ?" last
+    $run = function ($sql, $types, ...$params) use ($conn) {
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        return $stmt;
+    };
+
+    switch ($act) {
+
+        // ----- planner -----
+        case "task_add":
+        case "task_save":
+            $title = study_text($_POST["title"] ?? "", 200);
+            $notes = study_text($_POST["notes"] ?? "", 2000);
+            $due = study_date($_POST["due_date"] ?? "");
+            $priority = in_array($_POST["priority"] ?? "", ["high", "normal", "low"], true) ? $_POST["priority"] : "normal";
+            $category = in_array($_POST["category"] ?? "", ["general", "sat", "imo", "ib", "other"], true) ? $_POST["category"] : "general";
+            if ($title !== "") {
+                if ($act === "task_add") {
+                    $run("INSERT INTO study_tasks (title, notes, due_date, priority, category, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+                        "sssssi", $title, $notes, $due, $priority, $category, $user_id);
+                } else {
+                    $run("UPDATE study_tasks SET title = ?, notes = ?, due_date = ?, priority = ?, category = ? WHERE id = ? AND user_id = ?",
+                        "sssssii", $title, $notes, $due, $priority, $category, $id, $user_id);
+                }
+            }
+            break;
+
+        case "task_toggle":
+            $run("UPDATE study_tasks SET is_done = 1 - is_done, done_at = IF(is_done = 1, NULL, NOW()) WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        case "task_delete":
+            $run("DELETE FROM study_tasks WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        // ----- tracker -----
+        case "session_add":
+            $date = study_date($_POST["session_date"] ?? "") ?? $today;
+            $minutes = study_int($_POST["minutes"] ?? "", 1, 1440);
+            $subject = in_array($_POST["subject"] ?? "", STUDY_SUBJECTS, true) ? $_POST["subject"] : "other";
+            $note = study_text($_POST["note"] ?? "", 255);
+            if ($minutes && $date <= $today) {
+                $run("INSERT INTO study_sessions (session_date, minutes, subject, note, user_id) VALUES (?, ?, ?, ?, ?)",
+                    "sissi", $date, $minutes, $subject, $note, $user_id);
+            }
+            break;
+
+        case "session_delete":
+            $run("DELETE FROM study_sessions WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        case "goal_save":
+            $goal = study_int($_POST["weekly_goal_minutes"] ?? "", 30, 10080);
+            if ($goal) {
+                $run("UPDATE study_settings SET weekly_goal_minutes = ? WHERE user_id = ?", "ii", $goal, $user_id);
+            }
+            break;
+
+        // ----- SAT -----
+        case "sat_goal_save":
+            $target = study_int($_POST["sat_target"] ?? "", 400, 1600);
+            $exam = study_date($_POST["sat_exam_date"] ?? "");
+            $run("UPDATE study_settings SET sat_target = ?, sat_exam_date = ? WHERE user_id = ?", "isi", $target, $exam, $user_id);
+            break;
+
+        case "sat_test_add":
+            $date = study_date($_POST["test_date"] ?? "") ?? $today;
+            $name = study_text($_POST["name"] ?? "", 120);
+            $rw = study_int($_POST["rw_score"] ?? "", 200, 800);
+            $math = study_int($_POST["math_score"] ?? "", 200, 800);
+            $note = study_text($_POST["note"] ?? "", 255);
+            if ($name !== "" && $rw && $math) {
+                $run("INSERT INTO study_sat_tests (test_date, name, rw_score, math_score, note, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    "ssiisi", $date, $name, $rw, $math, $note, $user_id);
+            }
+            break;
+
+        case "sat_test_delete":
+            $run("DELETE FROM study_sat_tests WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        // ----- topic progress (SAT and IMO) -----
+        case "topic_save":
+            $track = ($_POST["track"] ?? "") === "imo" ? "imo" : "sat";
+            $key = (string)($_POST["topic_key"] ?? "");
+            $all = $track === "sat" ? array_merge(...array_values(SAT_TOPICS)) : array_merge(...array_values(IMO_TOPICS));
+            $status = study_int($_POST["status"] ?? "", 0, 2) ?? 0;
+            $note = study_text($_POST["note"] ?? "", 255);
+            $url = study_text($_POST["resource_url"] ?? "", 500);
+            if ($url !== "" && !preg_match('~^https?://~i', $url)) {
+                $url = "";
+            }
+            if (isset($all[$key])) {
+                $run("INSERT INTO study_topic_progress (user_id, track, topic_key, status, note, resource_url) VALUES (?, ?, ?, ?, ?, ?)
+                      ON DUPLICATE KEY UPDATE status = VALUES(status), note = VALUES(note), resource_url = VALUES(resource_url)",
+                    "ississ", $user_id, $track, $key, $status, $note, $url);
+                $anchor = "#topic-" . $key;
+            }
+            break;
+
+        // ----- IMO problems -----
+        case "imo_add":
+            $area = isset(IMO_AREAS[$_POST["area"] ?? ""]) ? $_POST["area"] : "algebra";
+            $source = study_text($_POST["source"] ?? "", 150);
+            $difficulty = study_int($_POST["difficulty"] ?? "", 1, 5) ?? 3;
+            $status = in_array($_POST["status"] ?? "", ["solved", "partial", "unsolved"], true) ? $_POST["status"] : "solved";
+            $idea = study_text($_POST["key_idea"] ?? "", 3000);
+            $solved_on = study_date($_POST["solved_on"] ?? "") ?? $today;
+            if ($source !== "") {
+                $run("INSERT INTO study_imo_problems (area, source, difficulty, status, key_idea, solved_on, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    "ssisssi", $area, $source, $difficulty, $status, $idea, $solved_on, $user_id);
+            }
+            break;
+
+        case "imo_status":
+            $status = in_array($_POST["status"] ?? "", ["solved", "partial", "unsolved"], true) ? $_POST["status"] : "solved";
+            $run("UPDATE study_imo_problems SET status = ? WHERE id = ? AND user_id = ?", "sii", $status, $id, $user_id);
+            break;
+
+        case "imo_delete":
+            $run("DELETE FROM study_imo_problems WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        // ----- IB subjects and assessments -----
+        case "ib_subject_add":
+        case "ib_subject_save":
+            $name = study_text($_POST["name"] ?? "", 100);
+            $level = ($_POST["level"] ?? "") === "HL" ? "HL" : "SL";
+            $bounds = ib_boundaries_from_input($_POST["boundaries"] ?? "") ?? "0,6,10,15,19,24,28";
+            if ($name !== "") {
+                if ($act === "ib_subject_add") {
+                    $run("INSERT INTO study_ib_subjects (name, level, boundaries, user_id) VALUES (?, ?, ?, ?)", "sssi", $name, $level, $bounds, $user_id);
+                } else {
+                    $run("UPDATE study_ib_subjects SET name = ?, level = ?, boundaries = ? WHERE id = ? AND user_id = ?", "sssii", $name, $level, $bounds, $id, $user_id);
+                }
+            }
+            break;
+
+        case "ib_subject_delete":
+            $run("DELETE FROM study_ib_subjects WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        case "ib_assess_add":
+        case "ib_assess_save":
+            $subject_id = (int)($_POST["subject_id"] ?? 0);
+            $own = $run("SELECT id FROM study_ib_subjects WHERE id = ? AND user_id = ?", "ii", $subject_id, $user_id)->get_result()->fetch_assoc();
+            $title = study_text($_POST["title"] ?? "", 200);
+            $kind = in_array($_POST["kind"] ?? "", ["homework", "test", "ia", "project"], true) ? $_POST["kind"] : "homework";
+            $due = study_date($_POST["due_date"] ?? "");
+            $status = in_array($_POST["status"] ?? "", ["todo", "submitted", "graded"], true) ? $_POST["status"] : "todo";
+            $ca = study_int($_POST["crit_a"] ?? "", 0, 8);
+            $cb = study_int($_POST["crit_b"] ?? "", 0, 8);
+            $cc = study_int($_POST["crit_c"] ?? "", 0, 8);
+            $cd = study_int($_POST["crit_d"] ?? "", 0, 8);
+            $feedback = study_text($_POST["feedback"] ?? "", 3000);
+            if ($ca !== null || $cb !== null || $cc !== null || $cd !== null) {
+                $status = "graded";
+            }
+            if ($own && $title !== "") {
+                if ($act === "ib_assess_add") {
+                    $run("INSERT INTO study_ib_assessments (subject_id, title, kind, due_date, status, crit_a, crit_b, crit_c, crit_d, feedback, user_id)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "issssiiiisi", $subject_id, $title, $kind, $due, $status, $ca, $cb, $cc, $cd, $feedback, $user_id);
+                } else {
+                    $run("UPDATE study_ib_assessments SET subject_id = ?, title = ?, kind = ?, due_date = ?, status = ?, crit_a = ?, crit_b = ?, crit_c = ?, crit_d = ?, feedback = ?
+                          WHERE id = ? AND user_id = ?",
+                        "issssiiiisii", $subject_id, $title, $kind, $due, $status, $ca, $cb, $cc, $cd, $feedback, $id, $user_id);
+                }
+                $anchor = $id ? "#assess-" . $id : "";
+            }
+            break;
+
+        case "ib_assess_delete":
+            $run("DELETE FROM study_ib_assessments WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+
+        // ----- corrections -----
+        case "corr_add":
+            $subject = study_text($_POST["subject"] ?? "", 60);
+            $topic = study_text($_POST["topic"] ?? "", 120);
+            $mistake = study_text($_POST["mistake"] ?? "", 3000);
+            $correction = study_text($_POST["correction"] ?? "", 3000);
+            $next = date("Y-m-d", strtotime("+1 day"));
+            if ($subject !== "" && $mistake !== "" && $correction !== "") {
+                $run("INSERT INTO study_corrections (subject, topic, mistake, correction, next_review, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    "sssssi", $subject, $topic, $mistake, $correction, $next, $user_id);
+            }
+            break;
+
+        case "corr_review":
+            $row = $run("SELECT review_stage FROM study_corrections WHERE id = ? AND user_id = ?", "ii", $id, $user_id)->get_result()->fetch_assoc();
+            if ($row) {
+                if (($_POST["result"] ?? "") === "ok") {
+                    $stage = (int)$row["review_stage"] + 1;
+                    $mastered = $stage >= count(CORRECTION_INTERVALS) ? 1 : 0;
+                    $days = CORRECTION_INTERVALS[min($stage, count(CORRECTION_INTERVALS) - 1)];
+                } else {
+                    $stage = 0;
+                    $mastered = 0;
+                    $days = 1;
+                }
+                $next = date("Y-m-d", strtotime("+$days day"));
+                $run("UPDATE study_corrections SET review_stage = ?, mastered = ?, next_review = ? WHERE id = ? AND user_id = ?",
+                    "iisii", $stage, $mastered, $next, $id, $user_id);
+            }
+            break;
+
+        case "corr_delete":
+            $run("DELETE FROM study_corrections WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            break;
+    }
+
+    redirect("study.php?tab=" . $tab . $anchor);
+}
+
+
+// =================================================================
+// DATA used on several tabs
+// =================================================================
+
+$q = function ($sql, $types = "", ...$params) use ($conn) {
+    $stmt = $conn->prepare($sql);
+    if ($types !== "") {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+};
+
+$week_start = date("Y-m-d", strtotime("monday this week"));
+$week_minutes = (int)($q("SELECT COALESCE(SUM(minutes), 0) AS m FROM study_sessions WHERE user_id = ? AND session_date >= ?", "is", $user_id, $week_start)[0]["m"]);
+$goal = (int)$settings_row["weekly_goal_minutes"];
+
+// Streak: days in a row with a study session, ending today (or yesterday if nothing yet today)
+$days = array_column($q("SELECT DISTINCT session_date FROM study_sessions WHERE user_id = ? AND session_date > ? - INTERVAL 400 DAY ORDER BY session_date DESC", "is", $user_id, $today), "session_date");
+$streak = 0;
+$cursor = in_array($today, $days, true) ? $today : date("Y-m-d", strtotime("-1 day"));
+$day_set = array_flip($days);
+while (isset($day_set[$cursor])) {
+    $streak++;
+    $cursor = date("Y-m-d", strtotime($cursor . " -1 day"));
+}
+
+$subject_names = ["sat" => "SAT", "imo" => "IMO", "ib" => "IB", "other" => t("other"), "general" => t("general")];
+
+$card = "bg-white rounded-xl border p-5";
+$input = "border rounded-lg px-3 py-2 w-full";
+$btn = "bg-slate-900 text-white px-4 py-2 rounded-lg";
+
+study_head(t("hub") . " · " . $site_name);
+?>
+
+<div class="max-w-6xl mx-auto py-8 px-4 md:px-6">
+
+    <div class="flex flex-wrap justify-between items-center gap-3">
+        <a href="dashboard.php" class="text-blue-700 hover:underline">← <?= e(t("back")) ?></a>
+        <div class="flex gap-2 text-sm"><?php lang_switch(); ?></div>
+    </div>
+
+    <h1 class="text-3xl font-bold mt-4"><?= e(t("hub")) ?></h1>
+    <p class="text-slate-600 mb-6"><?= e(t("hub_hint")) ?></p>
+
+    <nav class="flex flex-wrap gap-2 mb-8">
+        <?php foreach ($tabs as $key): ?>
+            <a href="?tab=<?= $key ?>" class="px-4 py-2 rounded-lg border <?= $tab === $key ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:bg-slate-50" ?>"><?= e(t($key)) ?></a>
+        <?php endforeach; ?>
+    </nav>
+
+<?php
+// =================================================================
+// OVERVIEW
+// =================================================================
+if ($tab === "overview"):
+
+    $tasks_today = $q("SELECT * FROM study_tasks WHERE user_id = ? AND is_done = 0 AND due_date IS NOT NULL AND due_date <= ? ORDER BY due_date, FIELD(priority, 'high', 'normal', 'low')", "is", $user_id, $today);
+    $deadlines = $q("SELECT a.*, s.name AS subject_name FROM study_ib_assessments a JOIN study_ib_subjects s ON s.id = a.subject_id
+                     WHERE a.user_id = ? AND a.status = 'todo' AND a.due_date IS NOT NULL AND a.due_date <= ? + INTERVAL 14 DAY ORDER BY a.due_date", "is", $user_id, $today);
+    $reviews_due = (int)$q("SELECT COUNT(*) AS n FROM study_corrections WHERE user_id = ? AND mastered = 0 AND next_review <= ?", "is", $user_id, $today)[0]["n"];
+    $sat = $q("SELECT MAX(rw_score + math_score) AS best FROM study_sat_tests WHERE user_id = ?", "i", $user_id)[0];
+    $imo_solved = (int)$q("SELECT COUNT(*) AS n FROM study_imo_problems WHERE user_id = ? AND status = 'solved'", "i", $user_id)[0]["n"];
+    $exam_days = $settings_row["sat_exam_date"] ? (int)ceil((strtotime($settings_row["sat_exam_date"]) - strtotime($today)) / 86400) : null;
+?>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <a href="?tab=tracker" class="<?= $card ?>">
+            <div class="text-sm text-slate-500"><?= e(t("week_total")) ?></div>
+            <div class="text-2xl font-bold"><?= e(minutes_label($week_minutes)) ?></div>
+            <div class="h-2 bg-slate-200 rounded mt-2"><div class="h-2 bg-slate-800 rounded" style="width: <?= min(100, round($week_minutes / max(1, $goal) * 100)) ?>%"></div></div>
+            <div class="text-xs text-slate-500 mt-1"><?= e(t("target")) ?>: <?= e(minutes_label($goal)) ?></div>
+        </a>
+        <a href="?tab=tracker" class="<?= $card ?>">
+            <div class="text-sm text-slate-500"><?= e(t("streak")) ?></div>
+            <div class="text-2xl font-bold"><?= $streak ?></div>
+        </a>
+        <a href="?tab=sat" class="<?= $card ?>">
+            <div class="text-sm text-slate-500">SAT · <?= e(t("best")) ?></div>
+            <div class="text-2xl font-bold"><?= $sat["best"] ? (int)$sat["best"] : "—" ?><?php if ($settings_row["sat_target"]): ?><span class="text-base text-slate-500"> / <?= (int)$settings_row["sat_target"] ?></span><?php endif; ?></div>
+            <?php if ($exam_days !== null && $exam_days >= 0): ?><div class="text-xs text-slate-500 mt-1"><?= $exam_days ?> <?= e(t("days_left")) ?></div><?php endif; ?>
+        </a>
+        <a href="?tab=imo" class="<?= $card ?>">
+            <div class="text-sm text-slate-500">IMO</div>
+            <div class="text-2xl font-bold"><?= $imo_solved ?></div>
+            <div class="text-xs text-slate-500 mt-1"><?= e(t("solved_count")) ?></div>
+        </a>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+        <section class="<?= $card ?>">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("tasks_today")) ?></h2>
+            <?php if (!$tasks_today): ?><p class="text-slate-500"><?= e(t("all_clear")) ?></p><?php endif; ?>
+            <?php foreach ($tasks_today as $task): ?>
+                <form method="POST" class="flex items-start gap-2 py-1">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="task_toggle"><input type="hidden" name="id" value="<?= (int)$task["id"] ?>">
+                    <button title="<?= e(t("mark_done")) ?>" class="mt-1 w-4 h-4 border-2 border-slate-500 rounded shrink-0"></button>
+                    <span><?= e($task["title"]) ?><?php if ($task["due_date"] < $today): ?> <span class="text-red-700 text-sm">· <?= e(t("overdue")) ?></span><?php endif; ?></span>
+                </form>
+            <?php endforeach; ?>
+            <a href="?tab=planner" class="text-sm text-blue-700 mt-3 inline-block"><?= e(t("planner")) ?> →</a>
+        </section>
+
+        <section class="<?= $card ?>">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("deadlines")) ?></h2>
+            <?php if (!$deadlines): ?><p class="text-slate-500"><?= e(t("nothing_yet")) ?></p><?php endif; ?>
+            <?php foreach ($deadlines as $a): ?>
+                <div class="py-1"><span class="<?= $a["due_date"] < $today ? "text-red-700" : "text-slate-500" ?> text-sm"><?= e(date("d.m", strtotime($a["due_date"]))) ?></span> <?= e($a["subject_name"]) ?> — <?= e($a["title"]) ?></div>
+            <?php endforeach; ?>
+            <a href="?tab=grades" class="text-sm text-blue-700 mt-3 inline-block"><?= e(t("grades")) ?> →</a>
+        </section>
+
+        <section class="<?= $card ?>">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("reviews_today")) ?></h2>
+            <div class="text-3xl font-bold"><?= $reviews_due ?></div>
+            <a href="?tab=corrections" class="text-sm text-blue-700 mt-3 inline-block"><?= e(t("corrections")) ?> →</a>
+        </section>
+    </div>
+
+<?php
+// =================================================================
+// PLANNER
+// =================================================================
+elseif ($tab === "planner"):
+
+    $open = $q("SELECT * FROM study_tasks WHERE user_id = ? AND is_done = 0 ORDER BY due_date IS NULL, due_date, FIELD(priority, 'high', 'normal', 'low'), id", "i", $user_id);
+    $done = $q("SELECT * FROM study_tasks WHERE user_id = ? AND is_done = 1 ORDER BY done_at DESC LIMIT 50", "i", $user_id);
+    $week_end = date("Y-m-d", strtotime($week_start . " +6 day"));
+    $groups = ["overdue" => [], "today" => [], "this_week" => [], "upcoming" => [], "no_date" => []];
+    foreach ($open as $task) {
+        $d = $task["due_date"];
+        $g = !$d ? "no_date" : ($d < $today ? "overdue" : ($d === $today ? "today" : ($d <= $week_end ? "this_week" : "upcoming")));
+        $groups[$g][] = $task;
+    }
+    $priority_color = ["high" => "border-l-red-600", "normal" => "border-l-slate-400", "low" => "border-l-slate-200"];
+
+    $task_form = function ($task = null) use ($input, $btn, $subject_names) {
+        ?>
+        <input name="title" required maxlength="200" value="<?= e($task["title"] ?? "") ?>" placeholder="<?= e(t("task")) ?>" class="border rounded-lg px-3 py-2 md:col-span-2">
+        <input type="date" name="due_date" value="<?= e($task["due_date"] ?? "") ?>" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("due")) ?>">
+        <select name="priority" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("priority")) ?>">
+            <?php foreach (["high", "normal", "low"] as $p): ?><option value="<?= $p ?>" <?= ($task["priority"] ?? "normal") === $p ? "selected" : "" ?>><?= e(t($p)) ?></option><?php endforeach; ?>
+        </select>
+        <select name="category" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("category")) ?>">
+            <?php foreach (["general", "sat", "imo", "ib", "other"] as $c): ?><option value="<?= $c ?>" <?= ($task["category"] ?? "general") === $c ? "selected" : "" ?>><?= e($subject_names[$c]) ?></option><?php endforeach; ?>
+        </select>
+        <textarea name="notes" maxlength="2000" rows="2" placeholder="<?= e(t("notes")) ?> (<?= e(t("optional")) ?>)" class="border rounded-lg px-3 py-2 md:col-span-5"><?= e($task["notes"] ?? "") ?></textarea>
+        <?php
+    };
+?>
+
+    <form method="POST" class="<?= $card ?> grid md:grid-cols-5 gap-3 mb-6">
+        <?= csrf_field() ?><input type="hidden" name="act" value="task_add">
+        <?php $task_form(); ?>
+        <button class="<?= $btn ?> justify-self-start"><?= e(t("add")) ?></button>
+    </form>
+
+    <?php foreach ($groups as $group => $items): if (!$items) continue; ?>
+        <h2 class="font-bold text-lg mt-6 mb-2 <?= $group === "overdue" ? "text-red-700" : "" ?>"><?= e(t($group)) ?> (<?= count($items) ?>)</h2>
+        <div class="space-y-2">
+        <?php foreach ($items as $task): ?>
+            <div class="bg-white rounded-lg border border-l-4 <?= $priority_color[$task["priority"]] ?> p-3">
+                <div class="flex items-start gap-3">
+                    <form method="POST"><?= csrf_field() ?><input type="hidden" name="act" value="task_toggle"><input type="hidden" name="id" value="<?= (int)$task["id"] ?>">
+                        <button title="<?= e(t("mark_done")) ?>" class="mt-1 w-5 h-5 border-2 border-slate-500 rounded"></button></form>
+                    <div class="flex-1">
+                        <div class="font-semibold"><?= e($task["title"]) ?></div>
+                        <div class="text-sm text-slate-500">
+                            <?= e($subject_names[$task["category"]] ?? "") ?>
+                            <?php if ($task["due_date"]): ?> · <?= e(date("d.m.Y", strtotime($task["due_date"]))) ?><?php endif; ?>
+                        </div>
+                        <?php if ($task["notes"]): ?><p class="text-sm mt-1 whitespace-pre-line"><?= e($task["notes"]) ?></p><?php endif; ?>
+                        <details class="mt-1 text-sm">
+                            <summary class="cursor-pointer text-slate-500"><?= e(t("edit")) ?></summary>
+                            <form method="POST" class="grid md:grid-cols-5 gap-2 mt-2">
+                                <?= csrf_field() ?><input type="hidden" name="act" value="task_save"><input type="hidden" name="id" value="<?= (int)$task["id"] ?>">
+                                <?php $task_form($task); ?>
+                                <button class="<?= $btn ?> justify-self-start"><?= e(t("save")) ?></button>
+                            </form>
+                            <form method="POST" class="mt-2" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')">
+                                <?= csrf_field() ?><input type="hidden" name="act" value="task_delete"><input type="hidden" name="id" value="<?= (int)$task["id"] ?>">
+                                <button class="text-red-700"><?= e(t("delete")) ?></button>
+                            </form>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        </div>
+    <?php endforeach; ?>
+
+    <?php if (!$open): ?><p class="text-slate-500"><?= e(t("all_clear")) ?></p><?php endif; ?>
+
+    <?php if ($done): ?>
+    <details class="mt-8">
+        <summary class="cursor-pointer font-semibold"><?= e(t("completed")) ?> (<?= count($done) ?>)</summary>
+        <div class="space-y-1 mt-2">
+        <?php foreach ($done as $task): ?>
+            <form method="POST" class="flex items-center gap-3 bg-white rounded-lg border p-2 text-slate-500">
+                <?= csrf_field() ?><input type="hidden" name="act" value="task_toggle"><input type="hidden" name="id" value="<?= (int)$task["id"] ?>">
+                <span class="line-through flex-1"><?= e($task["title"]) ?></span>
+                <button class="text-sm text-blue-700"><?= e(t("undo")) ?></button>
+            </form>
+        <?php endforeach; ?>
+        </div>
+    </details>
+    <?php endif; ?>
+
+<?php
+// =================================================================
+// TRACKER
+// =================================================================
+elseif ($tab === "tracker"):
+
+    $from = date("Y-m-d", strtotime("-13 day"));
+    $per_day = [];
+    for ($i = 13; $i >= 0; $i--) {
+        $per_day[date("Y-m-d", strtotime("-$i day"))] = 0;
+    }
+    foreach ($q("SELECT session_date, SUM(minutes) AS m FROM study_sessions WHERE user_id = ? AND session_date >= ? GROUP BY session_date", "is", $user_id, $from) as $r) {
+        $per_day[$r["session_date"]] = (int)$r["m"];
+    }
+    $max_day = max(30, max($per_day));
+    $by_subject = $q("SELECT subject, SUM(minutes) AS m FROM study_sessions WHERE user_id = ? AND session_date > ? - INTERVAL 30 DAY GROUP BY subject ORDER BY m DESC", "is", $user_id, $today);
+    $recent = $q("SELECT * FROM study_sessions WHERE user_id = ? ORDER BY session_date DESC, id DESC LIMIT 30", "i", $user_id);
+?>
+
+    <div class="grid md:grid-cols-3 gap-6 mb-6">
+        <form method="POST" class="<?= $card ?> space-y-3 md:col-span-2">
+            <?= csrf_field() ?><input type="hidden" name="act" value="session_add">
+            <h2 class="font-bold text-lg"><?= e(t("log_session")) ?></h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <input type="date" name="session_date" value="<?= $today ?>" max="<?= $today ?>" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("date")) ?>">
+                <input type="number" name="minutes" min="1" max="1440" required placeholder="<?= e(t("minutes")) ?>" class="border rounded-lg px-3 py-2">
+                <select name="subject" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("subject")) ?>">
+                    <?php foreach (STUDY_SUBJECTS as $s): ?><option value="<?= $s ?>"><?= e($subject_names[$s]) ?></option><?php endforeach; ?>
+                </select>
+                <input name="note" maxlength="255" placeholder="<?= e(t("note")) ?>" class="border rounded-lg px-3 py-2">
+            </div>
+            <button class="<?= $btn ?>"><?= e(t("add")) ?></button>
+        </form>
+
+        <div class="<?= $card ?>">
+            <div class="text-sm text-slate-500"><?= e(t("week_total")) ?></div>
+            <div class="text-2xl font-bold"><?= e(minutes_label($week_minutes)) ?> <span class="text-base text-slate-500">/ <?= e(minutes_label($goal)) ?></span></div>
+            <div class="h-2 bg-slate-200 rounded mt-2"><div class="h-2 bg-slate-800 rounded" style="width: <?= min(100, round($week_minutes / max(1, $goal) * 100)) ?>%"></div></div>
+            <div class="mt-3 text-sm"><?= e(t("streak")) ?>: <strong><?= $streak ?></strong></div>
+            <form method="POST" class="flex gap-2 mt-3">
+                <?= csrf_field() ?><input type="hidden" name="act" value="goal_save">
+                <input type="number" name="weekly_goal_minutes" min="30" max="10080" value="<?= $goal ?>" class="border rounded-lg px-3 py-2 w-28" aria-label="<?= e(t("weekly_goal")) ?>">
+                <button class="border rounded-lg px-3 text-sm"><?= e(t("save")) ?></button>
+            </form>
+            <div class="text-xs text-slate-500 mt-1"><?= e(t("weekly_goal")) ?></div>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+        <section class="<?= $card ?> md:col-span-2">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("last_14")) ?></h2>
+            <div class="flex items-end gap-1 h-40">
+                <?php foreach ($per_day as $d => $m): ?>
+                    <div class="flex-1 flex flex-col items-center justify-end h-full" title="<?= e($d) ?>: <?= e(minutes_label($m)) ?>">
+                        <span class="text-[10px] text-slate-500"><?= $m ?: "" ?></span>
+                        <div class="w-full rounded-t <?= $d === $today ? "bg-blue-700" : "bg-slate-700" ?>" style="height: <?= round($m / $max_day * 100) ?>%; min-height: 1px"></div>
+                        <span class="text-[10px] text-slate-500 mt-1"><?= date("d", strtotime($d)) ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <section class="<?= $card ?>">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("by_subject")) ?></h2>
+            <?php if (!$by_subject): ?><p class="text-slate-500"><?= e(t("nothing_yet")) ?></p><?php endif; ?>
+            <?php foreach ($by_subject as $r): ?>
+                <div class="flex justify-between py-1 border-b"><span><?= e($subject_names[$r["subject"]] ?? $r["subject"]) ?></span><span class="font-semibold"><?= e(minutes_label($r["m"])) ?></span></div>
+            <?php endforeach; ?>
+        </section>
+    </div>
+
+    <section class="mt-6">
+        <h2 class="font-bold text-lg mb-3"><?= e(t("recent_sessions")) ?></h2>
+        <?php if (!$recent): ?><p class="text-slate-500"><?= e(t("nothing_yet")) ?></p><?php endif; ?>
+        <div class="space-y-1">
+        <?php foreach ($recent as $s): ?>
+            <div class="flex flex-wrap items-center gap-3 bg-white rounded-lg border px-3 py-2">
+                <span class="text-sm text-slate-500 w-20"><?= e(date("d.m.Y", strtotime($s["session_date"]))) ?></span>
+                <span class="font-semibold w-24"><?= e(minutes_label($s["minutes"])) ?></span>
+                <span class="w-16"><?= e($subject_names[$s["subject"]] ?? "") ?></span>
+                <span class="flex-1 text-slate-600"><?= e($s["note"]) ?></span>
+                <form method="POST" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')"><?= csrf_field() ?><input type="hidden" name="act" value="session_delete"><input type="hidden" name="id" value="<?= (int)$s["id"] ?>"><button class="text-sm text-red-700"><?= e(t("delete")) ?></button></form>
+            </div>
+        <?php endforeach; ?>
+        </div>
+    </section>
+
+<?php
+// =================================================================
+// SAT and IMO topic lists share one renderer
+// =================================================================
+elseif ($tab === "sat" || $tab === "imo"):
+
+    $track = $tab;
+    $progress = [];
+    foreach ($q("SELECT * FROM study_topic_progress WHERE user_id = ? AND track = ?", "is", $user_id, $track) as $r) {
+        $progress[$r["topic_key"]] = $r;
+    }
+    $groups = $track === "sat" ? SAT_TOPICS : array_combine(array_map(fn($k) => tl(IMO_AREAS[$k]), array_keys(IMO_TOPICS)), array_values(IMO_TOPICS));
+    $all_topics = array_merge(...array_values($groups));
+    $confident = count(array_filter($progress, fn($p) => (int)$p["status"] === 2 && isset($all_topics[$p["topic_key"]])));
+    $status_style = [0 => "bg-slate-100 text-slate-600", 1 => "bg-amber-100 text-amber-900", 2 => "bg-green-100 text-green-900"];
+
+    $render_topics = function () use ($groups, $progress, $track, $status_style, $card, $btn) {
+        foreach ($groups as $group => $topics): ?>
+            <h3 class="font-semibold mt-5 mb-2"><?= e($group) ?></h3>
+            <div class="space-y-2">
+            <?php foreach ($topics as $key => $label):
+                $p = $progress[$key] ?? ["status" => 0, "note" => "", "resource_url" => ""];
+                $s = (int)$p["status"]; ?>
+                <details class="bg-white rounded-lg border" id="topic-<?= e($key) ?>">
+                    <summary class="cursor-pointer flex flex-wrap items-center gap-3 px-4 py-3">
+                        <span class="flex-1"><?= e(tl($label)) ?></span>
+                        <span class="text-xs px-2 py-1 rounded <?= $status_style[$s] ?>"><?= e(t([0 => "not_started", 1 => "learning", 2 => "confident"][$s])) ?></span>
+                    </summary>
+                    <form method="POST" class="px-4 pb-4 grid md:grid-cols-4 gap-2">
+                        <?= csrf_field() ?><input type="hidden" name="act" value="topic_save"><input type="hidden" name="track" value="<?= $track ?>"><input type="hidden" name="topic_key" value="<?= e($key) ?>">
+                        <select name="status" class="border rounded-lg px-3 py-2">
+                            <?php foreach ([0 => "not_started", 1 => "learning", 2 => "confident"] as $v => $k): ?><option value="<?= $v ?>" <?= $s === $v ? "selected" : "" ?>><?= e(t($k)) ?></option><?php endforeach; ?>
+                        </select>
+                        <input name="note" maxlength="255" value="<?= e($p["note"]) ?>" placeholder="<?= e(t("note")) ?>" class="border rounded-lg px-3 py-2 md:col-span-3">
+                        <input type="url" name="resource_url" maxlength="500" value="<?= e($p["resource_url"]) ?>" placeholder="<?= e(t("resource")) ?> (https://...)" class="border rounded-lg px-3 py-2 md:col-span-3">
+                        <button class="<?= $btn ?>"><?= e(t("save")) ?></button>
+                        <?php if ($p["resource_url"]): ?><a href="<?= e($p["resource_url"]) ?>" target="_blank" rel="noopener" class="text-sm text-blue-700 md:col-span-4"><?= e(t("open")) ?>: <?= e($p["resource_url"]) ?></a><?php endif; ?>
+                    </form>
+                </details>
+            <?php endforeach; ?>
+            </div>
+        <?php endforeach;
+    };
+?>
+
+    <?php if ($track === "sat"):
+        $tests = $q("SELECT * FROM study_sat_tests WHERE user_id = ? ORDER BY test_date, id", "i", $user_id);
+        $best = $tests ? max(array_map(fn($t) => $t["rw_score"] + $t["math_score"], $tests)) : null;
+        $last = $tests ? end($tests) : null;
+        $exam_days = $settings_row["sat_exam_date"] ? (int)ceil((strtotime($settings_row["sat_exam_date"]) - strtotime($today)) / 86400) : null;
+    ?>
+        <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <form method="POST" class="<?= $card ?> space-y-2">
+                <?= csrf_field() ?><input type="hidden" name="act" value="sat_goal_save">
+                <h2 class="font-bold text-lg"><?= e(t("sat_goal")) ?></h2>
+                <label class="block text-sm"><?= e(t("target")) ?> (400–1600)<input type="number" name="sat_target" min="400" max="1600" step="10" value="<?= e($settings_row["sat_target"]) ?>" class="<?= $input ?>"></label>
+                <label class="block text-sm"><?= e(t("exam_date")) ?><input type="date" name="sat_exam_date" value="<?= e($settings_row["sat_exam_date"]) ?>" class="<?= $input ?>"></label>
+                <button class="<?= $btn ?>"><?= e(t("save")) ?></button>
+                <?php if ($exam_days !== null && $exam_days >= 0): ?><p class="text-sm font-semibold"><?= $exam_days ?> <?= e(t("days_left")) ?></p><?php endif; ?>
+            </form>
+            <div class="<?= $card ?>">
+                <div class="text-sm text-slate-500"><?= e(t("best")) ?></div>
+                <div class="text-3xl font-bold"><?= $best ?? "—" ?><?php if ($settings_row["sat_target"]): ?><span class="text-base text-slate-500"> / <?= (int)$settings_row["sat_target"] ?></span><?php endif; ?></div>
+                <?php if ($last): ?><div class="text-sm text-slate-500 mt-3"><?= e(t("latest")) ?>: <strong><?= $last["rw_score"] + $last["math_score"] ?></strong> (<?= e(t("rw")) ?> <?= (int)$last["rw_score"] ?>, <?= e(t("math")) ?> <?= (int)$last["math_score"] ?>)</div><?php endif; ?>
+            </div>
+            <div class="<?= $card ?>">
+                <div class="text-sm text-slate-500"><?= e(t("topics")) ?> · <?= e(t("confident")) ?></div>
+                <div class="text-3xl font-bold"><?= $confident ?> / <?= count($all_topics) ?></div>
+                <div class="h-2 bg-slate-200 rounded mt-2"><div class="h-2 bg-green-700 rounded" style="width: <?= round($confident / max(1, count($all_topics)) * 100) ?>%"></div></div>
+            </div>
+        </div>
+
+        <section class="<?= $card ?> mb-6">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("score_chart")) ?></h2>
+            <?php if (count($tests) >= 2):
+                $w = 700; $h = 200; $n = count($tests);
+                $pt = fn($i, $v) => round(30 + $i * ($w - 60) / ($n - 1)) . "," . round($h - 20 - ($v - 400) / 1200 * ($h - 40));
+                $line = implode(" ", array_map(fn($i) => $pt($i, $tests[$i]["rw_score"] + $tests[$i]["math_score"]), array_keys($tests)));
+            ?>
+                <svg viewBox="0 0 <?= $w ?> <?= $h ?>" class="w-full h-48" role="img" aria-label="<?= e(t("score_chart")) ?>">
+                    <?php foreach ([400, 800, 1200, 1600] as $g): $y = round($h - 20 - ($g - 400) / 1200 * ($h - 40)); ?>
+                        <line x1="30" x2="<?= $w - 30 ?>" y1="<?= $y ?>" y2="<?= $y ?>" stroke="#e2e8f0"/><text x="0" y="<?= $y + 4 ?>" font-size="11" fill="#64748b"><?= $g ?></text>
+                    <?php endforeach; ?>
+                    <?php if ($settings_row["sat_target"]): $y = round($h - 20 - ($settings_row["sat_target"] - 400) / 1200 * ($h - 40)); ?>
+                        <line x1="30" x2="<?= $w - 30 ?>" y1="<?= $y ?>" y2="<?= $y ?>" stroke="#15803d" stroke-dasharray="6 4"/>
+                    <?php endif; ?>
+                    <polyline points="<?= $line ?>" fill="none" stroke="#1e3a8a" stroke-width="3"/>
+                    <?php foreach ($tests as $i => $t): [$x, $y] = explode(",", $pt($i, $t["rw_score"] + $t["math_score"])); ?>
+                        <circle cx="<?= $x ?>" cy="<?= $y ?>" r="4" fill="#1e3a8a"><title><?= e($t["name"]) ?>: <?= $t["rw_score"] + $t["math_score"] ?></title></circle>
+                    <?php endforeach; ?>
+                </svg>
+            <?php else: ?>
+                <p class="text-slate-500 text-sm"><?= e(t("nothing_yet")) ?></p>
+            <?php endif; ?>
+        </section>
+
+        <section class="mb-6">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("practice_tests")) ?></h2>
+            <form method="POST" class="<?= $card ?> grid md:grid-cols-6 gap-2 mb-3">
+                <?= csrf_field() ?><input type="hidden" name="act" value="sat_test_add">
+                <input type="date" name="test_date" value="<?= $today ?>" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("date")) ?>">
+                <input name="name" required maxlength="120" placeholder="<?= e(t("test_name")) ?>" class="border rounded-lg px-3 py-2 md:col-span-2">
+                <input type="number" name="rw_score" required min="200" max="800" step="10" placeholder="<?= e(t("rw")) ?>" class="border rounded-lg px-3 py-2">
+                <input type="number" name="math_score" required min="200" max="800" step="10" placeholder="<?= e(t("math")) ?>" class="border rounded-lg px-3 py-2">
+                <button class="<?= $btn ?>"><?= e(t("add")) ?></button>
+            </form>
+            <?php foreach (array_reverse($tests) as $t): ?>
+                <div class="flex flex-wrap items-center gap-4 bg-white rounded-lg border px-4 py-2 mb-1">
+                    <span class="text-sm text-slate-500 w-24"><?= e(date("d.m.Y", strtotime($t["test_date"]))) ?></span>
+                    <span class="flex-1"><?= e($t["name"]) ?></span>
+                    <span class="text-sm"><?= e(t("rw")) ?> <?= (int)$t["rw_score"] ?> · <?= e(t("math")) ?> <?= (int)$t["math_score"] ?></span>
+                    <span class="font-bold w-16 text-right"><?= $t["rw_score"] + $t["math_score"] ?></span>
+                    <form method="POST" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')"><?= csrf_field() ?><input type="hidden" name="act" value="sat_test_delete"><input type="hidden" name="id" value="<?= (int)$t["id"] ?>"><button class="text-sm text-red-700"><?= e(t("delete")) ?></button></form>
+                </div>
+            <?php endforeach; ?>
+        </section>
+
+        <h2 class="font-bold text-lg"><?= e(t("topics")) ?></h2>
+        <p class="text-sm text-slate-500"><?= e(t("materials_note")) ?></p>
+        <?php $render_topics(); ?>
+
+    <?php else:
+        $problems = $q("SELECT * FROM study_imo_problems WHERE user_id = ? ORDER BY COALESCE(solved_on, DATE(created_at)) DESC, id DESC", "i", $user_id);
+        $per_area = [];
+        foreach ($problems as $p) {
+            $per_area[$p["area"]][$p["status"]] = ($per_area[$p["area"]][$p["status"]] ?? 0) + 1;
+        }
+        $status_label = ["solved" => t("solved"), "partial" => t("partial"), "unsolved" => t("unsolved")];
+    ?>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <?php foreach (IMO_AREAS as $key => $label): ?>
+                <div class="<?= $card ?>">
+                    <div class="text-sm text-slate-500"><?= e(tl($label)) ?></div>
+                    <div class="text-2xl font-bold"><?= (int)($per_area[$key]["solved"] ?? 0) ?></div>
+                    <div class="text-xs text-slate-500"><?= e(t("solved_count")) ?><?php if (!empty($per_area[$key]["partial"])): ?> · <?= (int)$per_area[$key]["partial"] ?> <?= e(mb_strtolower(t("partial"))) ?><?php endif; ?></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <section class="mb-6">
+            <h2 class="font-bold text-lg mb-3"><?= e(t("problems")) ?></h2>
+            <form method="POST" class="<?= $card ?> grid md:grid-cols-6 gap-2 mb-3">
+                <?= csrf_field() ?><input type="hidden" name="act" value="imo_add">
+                <input name="source" required maxlength="150" placeholder="<?= e(t("source")) ?>" class="border rounded-lg px-3 py-2 md:col-span-2">
+                <select name="area" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("area")) ?>"><?php foreach (IMO_AREAS as $k => $l): ?><option value="<?= $k ?>"><?= e(tl($l)) ?></option><?php endforeach; ?></select>
+                <select name="difficulty" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("difficulty")) ?>"><?php for ($i = 1; $i <= 5; $i++): ?><option value="<?= $i ?>" <?= $i === 3 ? "selected" : "" ?>><?= e(t("difficulty")) ?>: <?= $i ?></option><?php endfor; ?></select>
+                <select name="status" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("status")) ?>"><?php foreach ($status_label as $k => $l): ?><option value="<?= $k ?>"><?= e($l) ?></option><?php endforeach; ?></select>
+                <input type="date" name="solved_on" value="<?= $today ?>" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("date")) ?>">
+                <textarea name="key_idea" maxlength="3000" rows="2" placeholder="<?= e(t("key_idea")) ?>" class="border rounded-lg px-3 py-2 md:col-span-5"></textarea>
+                <button class="<?= $btn ?>"><?= e(t("add")) ?></button>
+            </form>
+            <?php foreach ($problems as $p): ?>
+                <div class="bg-white rounded-lg border px-4 py-3 mb-2">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="font-semibold flex-1"><?= e($p["source"]) ?></span>
+                        <span class="text-sm text-slate-500"><?= e(tl(IMO_AREAS[$p["area"]] ?? ["", ""])) ?> · <?= str_repeat("★", (int)$p["difficulty"]) ?></span>
+                        <form method="POST" class="flex gap-1">
+                            <?= csrf_field() ?><input type="hidden" name="act" value="imo_status"><input type="hidden" name="id" value="<?= (int)$p["id"] ?>">
+                            <select name="status" onchange="this.form.submit()" class="border rounded px-2 py-1 text-sm"><?php foreach ($status_label as $k => $l): ?><option value="<?= $k ?>" <?= $p["status"] === $k ? "selected" : "" ?>><?= e($l) ?></option><?php endforeach; ?></select>
+                        </form>
+                        <form method="POST" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')"><?= csrf_field() ?><input type="hidden" name="act" value="imo_delete"><input type="hidden" name="id" value="<?= (int)$p["id"] ?>"><button class="text-sm text-red-700"><?= e(t("delete")) ?></button></form>
+                    </div>
+                    <?php if ($p["key_idea"]): ?><p class="text-sm mt-1 text-slate-700 whitespace-pre-line"><?= e($p["key_idea"]) ?></p><?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </section>
+
+        <h2 class="font-bold text-lg"><?= e(t("topics")) ?> · <?= $confident ?> / <?= count($all_topics) ?> <?= e(mb_strtolower(t("confident"))) ?></h2>
+        <p class="text-sm text-slate-500"><?= e(t("materials_note")) ?></p>
+        <?php $render_topics(); ?>
+    <?php endif; ?>
+
+<?php
+// =================================================================
+// IB GRADES
+// =================================================================
+elseif ($tab === "grades"):
+
+    $subjects = $q("SELECT * FROM study_ib_subjects WHERE user_id = ? ORDER BY name", "i", $user_id);
+    $subjects_by_id = array_column($subjects, null, "id");
+    $assessments = $q("SELECT * FROM study_ib_assessments WHERE user_id = ? ORDER BY status = 'graded', due_date IS NULL, due_date, id DESC", "i", $user_id);
+    $kinds = ["homework" => t("homework"), "test" => t("test"), "ia" => t("ia"), "project" => t("project")];
+    $statuses = ["todo" => t("todo"), "submitted" => t("submitted"), "graded" => t("graded")];
+
+    $grades_per_subject = [];
+    foreach ($assessments as $a) {
+        $s = $subjects_by_id[$a["subject_id"]] ?? null;
+        $g = $s ? ib_grade($a["crit_a"], $a["crit_b"], $a["crit_c"], $a["crit_d"], $s["boundaries"]) : null;
+        if ($g) {
+            $grades_per_subject[$a["subject_id"]][] = $g;
+        }
+    }
+
+    $assess_form = function ($a = null) use ($subjects, $kinds, $statuses) {
+        ?>
+        <select name="subject_id" required class="border rounded-lg px-3 py-2" aria-label="<?= e(t("subject")) ?>">
+            <?php foreach ($subjects as $s): ?><option value="<?= (int)$s["id"] ?>" <?= (int)($a["subject_id"] ?? 0) === (int)$s["id"] ? "selected" : "" ?>><?= e($s["name"]) ?> <?= e($s["level"]) ?></option><?php endforeach; ?>
+        </select>
+        <input name="title" required maxlength="200" value="<?= e($a["title"] ?? "") ?>" placeholder="<?= e(t("title")) ?>" class="border rounded-lg px-3 py-2 md:col-span-2">
+        <select name="kind" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("kind")) ?>"><?php foreach ($kinds as $k => $l): ?><option value="<?= $k ?>" <?= ($a["kind"] ?? "homework") === $k ? "selected" : "" ?>><?= e($l) ?></option><?php endforeach; ?></select>
+        <input type="date" name="due_date" value="<?= e($a["due_date"] ?? "") ?>" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("due")) ?>">
+        <select name="status" class="border rounded-lg px-3 py-2" aria-label="<?= e(t("status")) ?>"><?php foreach ($statuses as $k => $l): ?><option value="<?= $k ?>" <?= ($a["status"] ?? "todo") === $k ? "selected" : "" ?>><?= e($l) ?></option><?php endforeach; ?></select>
+        <div class="md:col-span-6 flex flex-wrap items-center gap-2 text-sm">
+            <span class="text-slate-600"><?= e(t("criteria")) ?>:</span>
+            <?php foreach (["a", "b", "c", "d"] as $c): ?>
+                <label class="flex items-center gap-1"><?= strtoupper($c) ?><input type="number" name="crit_<?= $c ?>" min="0" max="8" value="<?= e($a["crit_" . $c] ?? "") ?>" class="border rounded-lg px-2 py-1 w-16"></label>
+            <?php endforeach; ?>
+        </div>
+        <textarea name="feedback" maxlength="3000" rows="2" placeholder="<?= e(t("feedback")) ?> (<?= e(t("optional")) ?>)" class="border rounded-lg px-3 py-2 md:col-span-6"><?= e($a["feedback"] ?? "") ?></textarea>
+        <?php
+    };
+?>
+
+    <section class="mb-6">
+        <h2 class="font-bold text-lg mb-3"><?= e(t("subjects")) ?></h2>
+        <div class="grid md:grid-cols-3 gap-4">
+            <?php foreach ($subjects as $s):
+                $gs = $grades_per_subject[$s["id"]] ?? [];
+                $avg = $gs ? round(array_sum($gs) / count($gs), 1) : null; ?>
+                <div class="<?= $card ?>">
+                    <div class="flex justify-between"><span class="font-semibold"><?= e($s["name"]) ?></span><span class="text-sm text-slate-500"><?= e($s["level"]) ?></span></div>
+                    <div class="text-3xl font-bold mt-1"><?= $avg ?? "—" ?></div>
+                    <div class="text-xs text-slate-500"><?= e(t("average")) ?> (1–7) · <?= count($gs) ?></div>
+                    <details class="mt-2 text-sm">
+                        <summary class="cursor-pointer text-slate-500"><?= e(t("edit")) ?> · <?= e(t("ib_grade_table")) ?></summary>
+                        <form method="POST" class="space-y-2 mt-2">
+                            <?= csrf_field() ?><input type="hidden" name="act" value="ib_subject_save"><input type="hidden" name="id" value="<?= (int)$s["id"] ?>">
+                            <input name="name" required maxlength="100" value="<?= e($s["name"]) ?>" class="<?= $input ?>">
+                            <select name="level" class="<?= $input ?>"><option <?= $s["level"] === "SL" ? "selected" : "" ?>>SL</option><option <?= $s["level"] === "HL" ? "selected" : "" ?>>HL</option></select>
+                            <label class="block text-xs text-slate-500"><?= e(t("boundaries")) ?><input name="boundaries" value="<?= e($s["boundaries"]) ?>" class="<?= $input ?>"></label>
+                            <button class="<?= $btn ?>"><?= e(t("save")) ?></button>
+                        </form>
+                        <form method="POST" class="mt-2" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')"><?= csrf_field() ?><input type="hidden" name="act" value="ib_subject_delete"><input type="hidden" name="id" value="<?= (int)$s["id"] ?>"><button class="text-red-700"><?= e(t("delete")) ?></button></form>
+                    </details>
+                </div>
+            <?php endforeach; ?>
+            <form method="POST" class="<?= $card ?> space-y-2">
+                <?= csrf_field() ?><input type="hidden" name="act" value="ib_subject_add">
+                <div class="font-semibold"><?= e(t("add_subject")) ?></div>
+                <input name="name" required maxlength="100" placeholder="<?= e(t("subject_name")) ?>" class="<?= $input ?>">
+                <select name="level" class="<?= $input ?>"><option>SL</option><option>HL</option></select>
+                <label class="block text-xs text-slate-500"><?= e(t("boundaries")) ?><input name="boundaries" value="0,6,10,15,19,24,28" class="<?= $input ?>"></label>
+                <button class="<?= $btn ?>"><?= e(t("add")) ?></button>
+            </form>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="font-bold text-lg mb-1"><?= e(t("assessments")) ?></h2>
+        <p class="text-sm text-slate-500 mb-3"><?= e(t("grade_needs_all")) ?></p>
+        <?php if ($subjects): ?>
+        <form method="POST" class="<?= $card ?> grid md:grid-cols-6 gap-2 mb-4">
+            <?= csrf_field() ?><input type="hidden" name="act" value="ib_assess_add">
+            <div class="md:col-span-6 font-semibold"><?= e(t("add_assessment")) ?></div>
+            <?php $assess_form(); ?>
+            <button class="<?= $btn ?> justify-self-start"><?= e(t("add")) ?></button>
+        </form>
+        <?php endif; ?>
+
+        <?php if (!$assessments): ?><p class="text-slate-500"><?= e(t("nothing_yet")) ?></p><?php endif; ?>
+        <?php foreach ($assessments as $a):
+            $s = $subjects_by_id[$a["subject_id"]] ?? null;
+            $g = $s ? ib_grade($a["crit_a"], $a["crit_b"], $a["crit_c"], $a["crit_d"], $s["boundaries"]) : null;
+            $late = $a["status"] === "todo" && $a["due_date"] && $a["due_date"] < $today; ?>
+            <div class="bg-white rounded-lg border px-4 py-3 mb-2" id="assess-<?= (int)$a["id"] ?>">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="flex-1"><span class="font-semibold"><?= e($a["title"]) ?></span> <span class="text-sm text-slate-500">· <?= e($s["name"] ?? "") ?> · <?= e($kinds[$a["kind"]] ?? "") ?></span></span>
+                    <?php if ($a["due_date"]): ?><span class="text-sm <?= $late ? "text-red-700 font-semibold" : "text-slate-500" ?>"><?= e(date("d.m.Y", strtotime($a["due_date"]))) ?></span><?php endif; ?>
+                    <span class="text-sm"><?= e($statuses[$a["status"]] ?? "") ?></span>
+                    <span class="text-sm text-slate-600">
+                        <?php foreach (["a", "b", "c", "d"] as $c): ?><?= strtoupper($c) ?>:<?= $a["crit_" . $c] === null ? "–" : (int)$a["crit_" . $c] ?> <?php endforeach; ?>
+                    </span>
+                    <span class="w-14 text-right"><?php if ($g): ?><span class="text-xl font-bold"><?= $g ?></span><span class="text-xs text-slate-500">/7</span><?php endif; ?></span>
+                </div>
+                <?php if ($a["feedback"]): ?><p class="text-sm mt-1 text-slate-700 whitespace-pre-line"><?= e($a["feedback"]) ?></p><?php endif; ?>
+                <details class="mt-1 text-sm">
+                    <summary class="cursor-pointer text-slate-500"><?= e(t("edit")) ?></summary>
+                    <form method="POST" class="grid md:grid-cols-6 gap-2 mt-2">
+                        <?= csrf_field() ?><input type="hidden" name="act" value="ib_assess_save"><input type="hidden" name="id" value="<?= (int)$a["id"] ?>">
+                        <?php $assess_form($a); ?>
+                        <button class="<?= $btn ?> justify-self-start"><?= e(t("save")) ?></button>
+                    </form>
+                    <form method="POST" class="mt-2" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')"><?= csrf_field() ?><input type="hidden" name="act" value="ib_assess_delete"><input type="hidden" name="id" value="<?= (int)$a["id"] ?>"><button class="text-red-700"><?= e(t("delete")) ?></button></form>
+                </details>
+            </div>
+        <?php endforeach; ?>
+    </section>
+
+<?php
+// =================================================================
+// CORRECTIONS
+// =================================================================
+elseif ($tab === "corrections"):
+
+    $due = $q("SELECT * FROM study_corrections WHERE user_id = ? AND mastered = 0 AND next_review <= ? ORDER BY next_review, id", "is", $user_id, $today);
+    $later = $q("SELECT * FROM study_corrections WHERE user_id = ? AND mastered = 0 AND next_review > ? ORDER BY next_review, id", "is", $user_id, $today);
+    $mastered = $q("SELECT * FROM study_corrections WHERE user_id = ? AND mastered = 1 ORDER BY id DESC LIMIT 100", "i", $user_id);
+
+    $render_correction = function ($c, $reviewable) {
+        ?>
+        <div class="bg-white rounded-lg border p-4 mb-2">
+            <div class="text-sm text-slate-500"><?= e($c["subject"]) ?><?= $c["topic"] ? " · " . e($c["topic"]) : "" ?></div>
+            <div class="grid md:grid-cols-2 gap-3 mt-2">
+                <div><div class="text-xs text-red-700 font-semibold"><?= e(t("mistake")) ?></div><p class="whitespace-pre-line"><?= e($c["mistake"]) ?></p></div>
+                <?php if ($reviewable): ?>
+                    <details><summary class="cursor-pointer text-xs text-green-800 font-semibold"><?= e(t("correction")) ?></summary><p class="whitespace-pre-line mt-1"><?= e($c["correction"]) ?></p></details>
+                <?php else: ?>
+                    <div><div class="text-xs text-green-800 font-semibold"><?= e(t("correction")) ?></div><p class="whitespace-pre-line"><?= e($c["correction"]) ?></p></div>
+                <?php endif; ?>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 mt-3 text-sm">
+                <?php if ($reviewable): ?>
+                    <?php foreach (["ok" => ["remember", "bg-green-700 text-white"], "hard" => ["still_hard", "border"]] as $result => [$label, $style]): ?>
+                        <form method="POST"><?= csrf_field() ?><input type="hidden" name="act" value="corr_review"><input type="hidden" name="id" value="<?= (int)$c["id"] ?>"><input type="hidden" name="result" value="<?= $result ?>">
+                            <button class="px-3 py-1 rounded-lg <?= $style ?>"><?= e(t($label)) ?></button></form>
+                    <?php endforeach; ?>
+                <?php elseif (!$c["mastered"]): ?>
+                    <span class="text-slate-500"><?= e(t("next_review")) ?>: <?= e(date("d.m.Y", strtotime($c["next_review"]))) ?></span>
+                <?php endif; ?>
+                <form method="POST" class="ml-auto" onsubmit="return confirm('<?= e(t("confirm_delete")) ?>')"><?= csrf_field() ?><input type="hidden" name="act" value="corr_delete"><input type="hidden" name="id" value="<?= (int)$c["id"] ?>"><button class="text-red-700"><?= e(t("delete")) ?></button></form>
+            </div>
+        </div>
+        <?php
+    };
+?>
+
+    <form method="POST" class="<?= $card ?> grid md:grid-cols-2 gap-2 mb-6">
+        <?= csrf_field() ?><input type="hidden" name="act" value="corr_add">
+        <div class="md:col-span-2 font-semibold"><?= e(t("add_correction")) ?></div>
+        <input name="subject" required maxlength="60" placeholder="<?= e(t("subject")) ?> (SAT Math, IB Physics…)" class="border rounded-lg px-3 py-2">
+        <input name="topic" maxlength="120" placeholder="<?= e(t("topic")) ?> (<?= e(t("optional")) ?>)" class="border rounded-lg px-3 py-2">
+        <textarea name="mistake" required maxlength="3000" rows="3" placeholder="<?= e(t("mistake")) ?>" class="border rounded-lg px-3 py-2"></textarea>
+        <textarea name="correction" required maxlength="3000" rows="3" placeholder="<?= e(t("correction")) ?>" class="border rounded-lg px-3 py-2"></textarea>
+        <button class="<?= $btn ?> justify-self-start"><?= e(t("add")) ?></button>
+    </form>
+    <p class="text-sm text-slate-500 mb-4"><?= e(t("spaced_hint")) ?></p>
+
+    <h2 class="font-bold text-lg mb-2"><?= e(t("due_review")) ?> (<?= count($due) ?>)</h2>
+    <?php if (!$due): ?><p class="text-slate-500 mb-4"><?= e(t("all_clear")) ?></p><?php endif; ?>
+    <?php foreach ($due as $c) { $render_correction($c, true); } ?>
+
+    <?php if ($later): ?>
+        <h2 class="font-bold text-lg mt-6 mb-2"><?= e(t("in_progress")) ?> (<?= count($later) ?>)</h2>
+        <?php foreach ($later as $c) { $render_correction($c, false); } ?>
+    <?php endif; ?>
+
+    <?php if ($mastered): ?>
+        <details class="mt-6">
+            <summary class="cursor-pointer font-bold text-lg"><?= e(t("mastered")) ?> (<?= count($mastered) ?>)</summary>
+            <div class="mt-2"><?php foreach ($mastered as $c) { $render_correction($c, false); } ?></div>
+        </details>
+    <?php endif; ?>
+
+<?php endif; ?>
+
+</div>
+
+</body>
+</html>
