@@ -14,8 +14,9 @@ $stmt->execute();
 $me = $stmt->get_result()->fetch_assoc();
 
 require_once "study_lib.php";
+require_once "sat_bank_lib.php";
 
-$tabs = ["overview", "planner", "tracker", "sat", "imo", "grades", "corrections"];
+$tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "corrections"];
 $tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
 $today = date("Y-m-d");
 
@@ -70,6 +71,77 @@ $conn->query("INSERT IGNORE INTO study_settings (user_id) VALUES ($user_id)");
 $settings_row = $conn->query("SELECT * FROM study_settings WHERE user_id = $user_id")->fetch_assoc();
 
 
+// One task of the SAT task book
+function render_bank_card(array $t, $p, $just_added = false)
+{
+    $status = $p["status"] ?? "";
+    $border = ["correct" => "border-l-green-600", "wrong" => "border-l-red-600", "revealed" => "border-l-amber-500"][$status] ?? "border-l-slate-300";
+    ?>
+    <div id="task-<?= (int)$t["no"] ?>" class="bank-card bg-white rounded-lg border border-l-4 <?= $border ?> p-4">
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+            <span class="font-mono font-bold">#<?= (int)$t["no"] ?></span>
+            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600"><?= e($t["area"]) ?> · <?= e($t["topic"]) ?></span>
+            <?php if ($status === "correct"): ?><span class="ml-auto font-semibold text-green-700">✓ <?= e(t("right")) ?></span>
+            <?php elseif ($status === "wrong"): ?><span class="ml-auto font-semibold text-red-700">✗ <?= e(t("wrong")) ?></span>
+            <?php elseif ($status === "revealed"): ?><span class="ml-auto font-semibold text-amber-700"><?= e(t("revealed")) ?></span><?php endif; ?>
+        </div>
+        <p class="mt-2 leading-7"><?= e($t["question"]) ?></p>
+
+        <?php $answer_form = function ($hidden) use ($t) { ?>
+            <div class="bank-retry mt-3 flex flex-wrap gap-2 <?= $hidden ? "hidden" : "" ?>">
+                <form method="POST" class="js-bank flex flex-wrap gap-2 flex-1">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="bank_check"><input type="hidden" name="no" value="<?= (int)$t["no"] ?>">
+                    <input name="answer" required maxlength="100" autocomplete="off" placeholder="<?= e(t("your_answer")) ?>" class="border rounded-lg px-3 py-2 flex-1 min-w-[10rem]">
+                    <button class="bg-slate-900 text-white px-4 py-2 rounded-lg"><?= e(t("check")) ?></button>
+                </form>
+            </div>
+        <?php }; ?>
+
+        <?php if (!$p): ?>
+            <?php $answer_form(false); ?>
+            <form method="POST" class="js-bank mt-2">
+                <?= csrf_field() ?><input type="hidden" name="act" value="bank_reveal"><input type="hidden" name="no" value="<?= (int)$t["no"] ?>">
+                <button class="text-sm text-slate-500 hover:underline"><?= e(t("show_solution")) ?></button>
+            </form>
+        <?php else: ?>
+            <?php if (!empty($p["my_answer"])): ?>
+                <p class="mt-2 text-sm"><span class="text-slate-500"><?= e(t("your_answer")) ?>:</span> <span class="font-mono"><?= e($p["my_answer"]) ?></span></p>
+            <?php endif; ?>
+            <div class="mt-2 p-3 rounded-lg <?= $status === "correct" ? "bg-green-50" : "bg-slate-50" ?> text-sm">
+                <div><span class="font-semibold"><?= e(t("correct_answer")) ?>:</span> <span class="font-mono"><?= e($t["answer"]) ?></span></div>
+                <?php if ($t["explanation"]): ?><div class="mt-1 text-slate-700"><?= e($t["explanation"]) ?></div><?php endif; ?>
+            </div>
+            <?php if ($status !== "correct"): ?>
+                <div class="mt-3 flex flex-wrap gap-3 text-sm">
+                    <button type="button" onclick="this.closest('.bank-card').querySelector('.bank-retry').classList.remove('hidden'); this.closest('.bank-card').querySelector('.bank-retry input[name=answer]').focus()" class="px-3 py-1 rounded-lg border"><?= e(t("try_again")) ?></button>
+                    <?php if ($status === "wrong"): ?>
+                        <form method="POST" class="js-bank"><?= csrf_field() ?><input type="hidden" name="act" value="bank_override"><input type="hidden" name="no" value="<?= (int)$t["no"] ?>">
+                            <button class="px-3 py-1 rounded-lg border"><?= e(t("i_was_right")) ?></button></form>
+                    <?php endif; ?>
+                    <?php if ($just_added): ?>
+                        <span class="px-3 py-1 text-green-700"><?= e(t("added")) ?> ✓</span>
+                    <?php else: ?>
+                        <form method="POST" class="js-bank"><?= csrf_field() ?><input type="hidden" name="act" value="bank_to_correction"><input type="hidden" name="no" value="<?= (int)$t["no"] ?>">
+                            <button class="px-3 py-1 rounded-lg border"><?= e(t("to_corrections")) ?></button></form>
+                    <?php endif; ?>
+                </div>
+                <?php $answer_form(true); ?>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
+// Short module title from the book's section names
+function bank_module_title($sections)
+{
+    $parts = array_map(function ($s) {
+        $s = preg_replace('/\s*\(\d+\)$/', '', $s);
+        return preg_replace('/\s*·\s*\d+\s*questions.*$/i', '', $s);
+    }, array_filter(explode("|", (string)$sections)));
+    return implode(" + ", array_unique($parts));
+}
+
 // =================================================================
 // ACTIONS
 // =================================================================
@@ -89,6 +161,91 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt->execute();
         return $stmt;
     };
+
+    // ----- SAT task book (answers may come by fetch() and get JSON back) -----
+    if (str_starts_with($act, "bank_")) {
+        $no = (int)($_POST["no"] ?? 0);
+        $ajax = ($_SERVER["HTTP_X_REQUESTED_WITH"] ?? "") === "fetch";
+
+        if ($act === "bank_import") {
+            $allowed = sat_bank_count() === 0 || current_user_role() === "editor";
+            $file = $_FILES["bank_file"] ?? null;
+            if (!$allowed) {
+                $_SESSION["bank_flash"] = "Only editors can replace the task book.";
+            } elseif (!$file || $file["error"] !== UPLOAD_ERR_OK || $file["size"] > 10 * 1024 * 1024) {
+                $_SESSION["bank_flash"] = "Please choose the task book file (up to 10 MB).";
+            } else {
+                $result = sat_import_bank(file_get_contents($file["tmp_name"]));
+                $_SESSION["bank_flash"] = is_int($result) ? t("bank_imported") . " " . $result . " " . t("tasks_word") : $result;
+            }
+            redirect("study.php?tab=satbank");
+        }
+
+        $task = $run("SELECT * FROM sat_bank WHERE no = ?", "i", $no)->get_result()->fetch_assoc();
+        if (!$task) {
+            http_response_code(404);
+            die("Task not found.");
+        }
+
+        $modules = sat_modules($user_id);
+        if (empty($modules[sat_module_of($no)]["unlocked"])) {
+            http_response_code(403);
+            die(e(t("module_locked_text")));
+        }
+
+        $row = $run("SELECT * FROM study_sat_bank_progress WHERE user_id = ? AND task_no = ?", "ii", $user_id, $no)->get_result()->fetch_assoc();
+
+        if ($act === "bank_check") {
+            $given = study_text($_POST["answer"] ?? "", 100);
+            if ($given !== "" && (!$row || $row["status"] !== "correct")) {
+                $correct = sat_check_answer($given, $task["answer"]);
+                $status = $correct ? "correct" : "wrong";
+                // XP: 10 for the first try, 5 after a mistake, none after viewing the solution
+                $xp = !$correct ? 0 : (!$row ? SAT_XP_FIRST_TRY : ($row["status"] === "wrong" ? SAT_XP_LATER : 0));
+                $run("INSERT INTO study_sat_bank_progress (user_id, task_no, status, attempts, my_answer, xp) VALUES (?, ?, ?, 1, ?, ?)
+                      ON DUPLICATE KEY UPDATE status = VALUES(status), attempts = attempts + 1, my_answer = VALUES(my_answer), xp = xp + VALUES(xp)",
+                    "iissi", $user_id, $no, $status, $given, $xp);
+            }
+        } elseif ($act === "bank_reveal" && !$row) {
+            $run("INSERT INTO study_sat_bank_progress (user_id, task_no, status, attempts, xp) VALUES (?, ?, 'revealed', 0, 0)", "ii", $user_id, $no);
+        } elseif ($act === "bank_override" && $row && $row["status"] === "wrong") {
+            $xp = SAT_XP_LATER;
+            $run("UPDATE study_sat_bank_progress SET status = 'correct', xp = xp + ? WHERE user_id = ? AND task_no = ?", "iii", $xp, $user_id, $no);
+        } elseif ($act === "bank_to_correction" && $row && $row["status"] !== "correct") {
+            $mistake = "SAT #" . $no . ": " . $task["question"] . ($row["my_answer"] ? "\n" . t("your_answer") . ": " . $row["my_answer"] : "");
+            $exists = $run("SELECT COUNT(*) AS n FROM study_corrections WHERE user_id = ? AND mistake LIKE CONCAT(?, '%')", "is", $user_id, "SAT #" . $no . ":")->get_result()->fetch_assoc()["n"];
+            if (!$exists) {
+                $subject = "SAT " . $task["area"];
+                $correction = t("correct_answer") . ": " . $task["answer"] . "\n" . $task["explanation"];
+                $next = date("Y-m-d", strtotime("+1 day"));
+                $run("INSERT INTO study_corrections (subject, topic, mistake, correction, next_review, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    "sssssi", $subject, $task["topic"], $mistake, $correction, $next, $user_id);
+            }
+        }
+
+        if ($ajax) {
+            $row = $run("SELECT * FROM study_sat_bank_progress WHERE user_id = ? AND task_no = ?", "ii", $user_id, $no)->get_result()->fetch_assoc();
+            $player = sat_player($user_id);
+            $module = sat_modules($user_id)[sat_module_of($no)];
+            ob_start();
+            render_bank_card($task, $row, $act === "bank_to_correction");
+            header("Content-Type: application/json; charset=UTF-8");
+            echo json_encode([
+                "no" => $no,
+                "status" => $row["status"] ?? "",
+                "html" => ob_get_clean(),
+                "xp" => (int)$player["xp"],
+                "level" => (int)$player["level"],
+                "level_xp" => (int)$player["level_xp"],
+                "today" => (int)$player["today"],
+                "answered" => (int)$module["answered"],
+                "correct" => (int)$module["correct"],
+            ]);
+            exit;
+        }
+
+        redirect("study.php?tab=satbank&module=" . sat_module_of($no) . "#task-" . $no);
+    }
 
     switch ($act) {
 
@@ -365,9 +522,10 @@ if ($tab === "overview"):
     $sat = $q("SELECT MAX(rw_score + math_score) AS best FROM study_sat_tests WHERE user_id = ?", "i", $user_id)[0];
     $imo_solved = (int)$q("SELECT COUNT(*) AS n FROM study_imo_problems WHERE user_id = ? AND status = 'solved'", "i", $user_id)[0]["n"];
     $exam_days = $settings_row["sat_exam_date"] ? (int)ceil((strtotime($settings_row["sat_exam_date"]) - strtotime($today)) / 86400) : null;
+    $bank_player = sat_bank_count() ? sat_player($user_id) : null;
 ?>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <a href="?tab=tracker" class="<?= $card ?>">
             <div class="text-sm text-slate-500"><?= e(t("week_total")) ?></div>
             <div class="text-2xl font-bold"><?= e(minutes_label($week_minutes)) ?></div>
@@ -382,6 +540,15 @@ if ($tab === "overview"):
             <div class="text-sm text-slate-500">SAT · <?= e(t("best")) ?></div>
             <div class="text-2xl font-bold"><?= $sat["best"] ? (int)$sat["best"] : "—" ?><?php if ($settings_row["sat_target"]): ?><span class="text-base text-slate-500"> / <?= (int)$settings_row["sat_target"] ?></span><?php endif; ?></div>
             <?php if ($exam_days !== null && $exam_days >= 0): ?><div class="text-xs text-slate-500 mt-1"><?= $exam_days ?> <?= e(t("days_left")) ?></div><?php endif; ?>
+        </a>
+        <a href="?tab=satbank" class="<?= $card ?>">
+            <div class="text-sm text-slate-500"><?= e(t("satbank")) ?></div>
+            <?php if ($bank_player): ?>
+                <div class="text-2xl font-bold"><?= e(t("level")) ?> <?= (int)$bank_player["level"] ?></div>
+                <div class="text-xs text-slate-500 mt-1"><?= e(t("today_goal")) ?>: <?= (int)$bank_player["today"] ?> / <?= SAT_DAILY_GOAL ?></div>
+            <?php else: ?>
+                <div class="text-2xl font-bold">—</div>
+            <?php endif; ?>
         </a>
         <a href="?tab=imo" class="<?= $card ?>">
             <div class="text-sm text-slate-500">IMO</div>
@@ -599,6 +766,127 @@ elseif ($tab === "tracker"):
 // =================================================================
 // SAT and IMO topic lists share one renderer
 // =================================================================
+elseif ($tab === "satbank"):
+
+    $bank_total = sat_bank_count();
+    $flash = $_SESSION["bank_flash"] ?? "";
+    unset($_SESSION["bank_flash"]);
+    $can_import = $bank_total === 0 || current_user_role() === "editor";
+?>
+    <?php if ($flash): ?><p class="mb-4 p-3 rounded-lg bg-blue-50 text-blue-900"><?= e($flash) ?></p><?php endif; ?>
+
+    <?php if ($bank_total === 0): ?>
+        <p class="<?= $card ?> mb-4 text-slate-600"><?= e(t("bank_empty")) ?></p>
+    <?php else:
+        $modules = sat_modules($user_id);
+        $player = sat_player($user_id);
+        $module_no = (int)($_GET["module"] ?? 0);
+        $continue = null;
+        foreach ($modules as $m => $mod) {
+            if ($mod["unlocked"] && !$mod["complete"]) { $continue = $m; break; }
+        }
+    ?>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="<?= $card ?>">
+                <div class="text-sm text-slate-500"><?= e(t("level")) ?></div>
+                <div class="text-3xl font-bold" id="bank-level"><?= (int)$player["level"] ?></div>
+                <div class="h-2 bg-slate-200 rounded mt-2"><div id="bank-level-bar" class="h-2 bg-amber-500 rounded" style="width: <?= round($player["level_xp"] / SAT_XP_PER_LEVEL * 100) ?>%"></div></div>
+                <div class="text-xs text-slate-500 mt-1"><span id="bank-xp"><?= (int)$player["xp"] ?></span> <?= e(t("xp")) ?></div>
+            </div>
+            <div class="<?= $card ?>">
+                <div class="text-sm text-slate-500"><?= e(t("today_goal")) ?></div>
+                <div class="text-3xl font-bold"><span id="bank-today"><?= (int)$player["today"] ?></span><span class="text-base text-slate-500"> / <?= SAT_DAILY_GOAL ?></span></div>
+                <div class="h-2 bg-slate-200 rounded mt-2"><div id="bank-today-bar" class="h-2 bg-blue-700 rounded" style="width: <?= min(100, round($player["today"] / SAT_DAILY_GOAL * 100)) ?>%"></div></div>
+            </div>
+            <div class="<?= $card ?>">
+                <div class="text-sm text-slate-500"><?= e(t("answered")) ?></div>
+                <div class="text-3xl font-bold"><?= (int)$player["answered"] ?><span class="text-base text-slate-500"> / <?= $bank_total ?></span></div>
+            </div>
+            <div class="<?= $card ?>">
+                <div class="text-sm text-slate-500"><?= e(t("accuracy")) ?></div>
+                <div class="text-3xl font-bold"><?= $player["answered"] ? round($player["correct"] / $player["answered"] * 100) . "%" : "—" ?></div>
+            </div>
+        </div>
+
+        <?php if ($module_no && isset($modules[$module_no])):
+            $mod = $modules[$module_no];
+            $tasks = $q("SELECT * FROM sat_bank WHERE no BETWEEN ? AND ? ORDER BY no", "ii", $mod["first_no"], $mod["last_no"]);
+            $done = [];
+            foreach ($q("SELECT * FROM study_sat_bank_progress WHERE user_id = ? AND task_no BETWEEN ? AND ?", "iii", $user_id, $mod["first_no"], $mod["last_no"]) as $r) {
+                $done[(int)$r["task_no"]] = $r;
+            }
+            $cell = ["correct" => "bg-green-600 text-white", "wrong" => "bg-red-600 text-white", "revealed" => "bg-amber-400"];
+        ?>
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <a href="?tab=satbank" class="text-blue-700">← <?= e(t("all_modules")) ?></a>
+                <h2 class="text-2xl font-bold flex-1"><?= e(t("module")) ?> <?= $module_no ?> · <?= e(bank_module_title($mod["sections"])) ?></h2>
+                <?php if (isset($modules[$module_no - 1])): ?><a href="?tab=satbank&module=<?= $module_no - 1 ?>" class="px-3 py-1 border rounded-lg bg-white">← <?= e(t("prev_module")) ?></a><?php endif; ?>
+                <?php if (isset($modules[$module_no + 1]) && $modules[$module_no + 1]["unlocked"]): ?><a href="?tab=satbank&module=<?= $module_no + 1 ?>" class="px-3 py-1 border rounded-lg bg-white"><?= e(t("next_module")) ?> →</a><?php endif; ?>
+            </div>
+
+            <?php if (!$mod["unlocked"]): ?>
+                <p class="<?= $card ?> text-slate-600"><?= e(t("module_locked_text")) ?></p>
+            <?php else: ?>
+                <div class="<?= $card ?> mb-4 sticky top-0 z-10">
+                    <div class="text-sm mb-2"><?= e(t("answered")) ?>: <strong id="mod-answered"><?= (int)$mod["answered"] ?></strong> / <?= (int)$mod["total"] ?> · <?= e(t("right")) ?>: <strong id="mod-correct"><?= (int)$mod["correct"] ?></strong></div>
+                    <div class="flex flex-wrap gap-1">
+                        <?php foreach ($tasks as $tk): $st = $done[(int)$tk["no"]]["status"] ?? ""; ?>
+                            <a href="#task-<?= (int)$tk["no"] ?>" id="cell-<?= (int)$tk["no"] ?>" title="#<?= (int)$tk["no"] ?>"
+                               class="w-7 h-7 rounded text-[10px] flex items-center justify-center border <?= $cell[$st] ?? "bg-white" ?>"><?= (int)$tk["no"] - (int)$mod["first_no"] + 1 ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <?php foreach ($tasks as $tk) { render_bank_card($tk, $done[(int)$tk["no"]] ?? null); } ?>
+                </div>
+                <?php if (isset($modules[$module_no + 1])): ?>
+                    <div class="mt-6 text-center"><a href="?tab=satbank&module=<?= $module_no + 1 ?>" class="inline-block bg-slate-900 text-white px-6 py-3 rounded-lg"><?= e(t("next_module")) ?> →</a></div>
+                <?php endif; ?>
+            <?php endif; ?>
+
+        <?php else: ?>
+            <div class="flex flex-wrap items-center gap-3 mb-2">
+                <h2 class="text-xl font-bold flex-1"><?= e(t("bank_title")) ?></h2>
+                <?php if ($continue): ?><a href="?tab=satbank&module=<?= $continue ?>" class="bg-slate-900 text-white px-5 py-2 rounded-lg"><?= e(t("continue")) ?>: <?= e(t("module")) ?> <?= $continue ?> →</a><?php endif; ?>
+            </div>
+            <p class="text-sm text-slate-500 mb-1"><?= e(t("bank_hint")) ?></p>
+            <p class="text-sm text-slate-500 mb-4"><?= e(t("stars_hint")) ?></p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <?php foreach ($modules as $m => $mod): $pct = round($mod["answered"] / max(1, $mod["total"]) * 100); ?>
+                    <?php if ($mod["unlocked"]): ?>
+                    <a href="?tab=satbank&module=<?= $m ?>" class="bg-white rounded-xl border p-4 hover:border-slate-900 <?= $m === $continue ? "ring-2 ring-blue-700" : "" ?>">
+                    <?php else: ?>
+                    <div class="bg-slate-200 rounded-xl border p-4 text-slate-500">
+                    <?php endif; ?>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold"><?= e(t("module")) ?> <?= $m ?></span>
+                            <span class="text-amber-500 tracking-tight" aria-label="<?= (int)$mod["stars"] ?> stars"><?= str_repeat("★", (int)$mod["stars"]) ?><span class="text-slate-300"><?= str_repeat("★", 3 - (int)$mod["stars"]) ?></span></span>
+                        </div>
+                        <div class="text-xs mt-1 truncate" title="<?= e(bank_module_title($mod["sections"])) ?>"><?= e(bank_module_title($mod["sections"])) ?></div>
+                        <div class="text-xs text-slate-500">#<?= (int)$mod["first_no"] ?>–<?= (int)$mod["last_no"] ?></div>
+                        <?php if ($mod["unlocked"]): ?>
+                            <div class="h-2 bg-slate-200 rounded mt-2"><div class="h-2 <?= $mod["complete"] ? "bg-green-600" : "bg-blue-700" ?> rounded" style="width: <?= $pct ?>%"></div></div>
+                            <div class="text-xs text-slate-500 mt-1"><?= (int)$mod["answered"] ?>/<?= (int)$mod["total"] ?></div>
+                        <?php else: ?>
+                            <div class="text-xs mt-3">🔒 <?= e(t("locked")) ?></div>
+                        <?php endif; ?>
+                    <?php if ($mod["unlocked"]): ?></a><?php else: ?></div><?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($can_import && empty($_GET["module"])): ?>
+        <form method="POST" enctype="multipart/form-data" class="<?= $card ?> mt-8 space-y-2">
+            <?= csrf_field() ?><input type="hidden" name="act" value="bank_import">
+            <div class="font-semibold"><?= e(t("bank_import")) ?></div>
+            <p class="text-sm text-slate-500"><?= e(t("bank_import_hint")) ?></p>
+            <input type="file" name="bank_file" accept=".json,application/json" required class="block">
+            <button class="<?= $btn ?>"><?= e(t("upload")) ?></button>
+        </form>
+    <?php endif; ?>
+
+<?php
 elseif ($tab === "sat" || $tab === "imo"):
 
     $track = $tab;
@@ -951,6 +1239,36 @@ elseif ($tab === "corrections"):
 <?php endif; ?>
 
 </div>
+
+<script>
+// SAT task book: check answers without reloading the page
+document.addEventListener("submit", async function (e) {
+    const form = e.target;
+    if (!form.classList.contains("js-bank")) return;
+    e.preventDefault();
+    const button = form.querySelector("button");
+    if (button) button.disabled = true;
+    try {
+        const res = await fetch(location.href, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" } });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        const card = document.getElementById("task-" + d.no);
+        if (card) card.outerHTML = d.html;
+        const cell = document.getElementById("cell-" + d.no);
+        if (cell) {
+            cell.className = cell.className.replace(/bg-\S+|text-white/g, "").trim() + " " +
+                ({ correct: "bg-green-600 text-white", wrong: "bg-red-600 text-white", revealed: "bg-amber-400" }[d.status] || "bg-white");
+        }
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set("bank-xp", d.xp); set("bank-level", d.level); set("bank-today", d.today);
+        set("mod-answered", d.answered); set("mod-correct", d.correct);
+        const lb = document.getElementById("bank-level-bar"); if (lb) lb.style.width = Math.round(d.level_xp / <?= SAT_XP_PER_LEVEL ?> * 100) + "%";
+        const tb = document.getElementById("bank-today-bar"); if (tb) tb.style.width = Math.min(100, Math.round(d.today / <?= SAT_DAILY_GOAL ?> * 100)) + "%";
+    } catch (err) {
+        form.submit();
+    }
+});
+</script>
 
 </body>
 </html>
