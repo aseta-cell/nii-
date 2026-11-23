@@ -247,6 +247,17 @@ Welcome back,
     Discussion notifications<?= $discussion_unread ? " (" . $discussion_unread . " new)" : "" ?>
 </a>
 
+<?php
+// Study Hub: only for special-access accounts
+$study_stmt = $conn->prepare("SELECT free_access FROM users WHERE id = ?");
+$study_stmt->bind_param("i", $_SESSION["user_id"]);
+$study_stmt->execute();
+if (!empty($study_stmt->get_result()->fetch_assoc()["free_access"])): ?>
+<a href="study.php" class="inline-block mt-3 ml-4 px-4 py-2 rounded-lg bg-primary text-white text-body-sm font-bold hover:opacity-90">
+    Study Hub · Учебный кабинет →
+</a>
+<?php endif; ?>
+
 </div>
 <div class="flex gap-stack-sm">
 <button class="px-6 py-2 border border-primary text-primary text-label-caps font-label-caps rounded hover:bg-primary hover:text-on-primary transition-all">
