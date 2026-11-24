@@ -15,8 +15,10 @@ $me = $stmt->get_result()->fetch_assoc();
 
 require_once "study_lib.php";
 require_once "sat_bank_lib.php";
+require_once "health_lib.php";
+require_once "cover_lib.php";
 
-$tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "corrections"];
+$tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "corrections", "health"];
 $tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
 $today = date("Y-m-d");
 
@@ -69,6 +71,7 @@ if (!$me || !$me["free_access"]) {
 
 $conn->query("INSERT IGNORE INTO study_settings (user_id) VALUES ($user_id)");
 $settings_row = $conn->query("SELECT * FROM study_settings WHERE user_id = $user_id")->fetch_assoc();
+seed_health_for_user($user_id, $study_lang);
 
 
 // One task of the SAT task book
@@ -245,6 +248,92 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         redirect("study.php?tab=satbank&module=" . sat_module_of($no) . "#task-" . $no);
+    }
+
+    // ----- Cover at the top of the hub (own photo or a ready-made one) -----
+    if (str_starts_with($act, "cover_")) {
+        $old = $settings_row["cover_file"] ?? null;
+        if ($act === "cover_upload") {
+            $file = save_cover_upload();
+            if ($file) {
+                $pos = array_key_exists($_POST["cover_pos"] ?? "", COVER_POSITIONS) ? $_POST["cover_pos"] : "center";
+                $run("UPDATE study_settings SET cover_file = ?, cover_preset = NULL, cover_pos = ? WHERE user_id = ?", "ssi", $file, $pos, $user_id);
+                delete_cover_file($old);
+            } else {
+                $_SESSION["cover_flash"] = t("cover_bad");
+            }
+        } elseif ($act === "cover_preset" && isset(COVER_PRESETS[$_POST["preset"] ?? ""])) {
+            $preset = $_POST["preset"];
+            $run("UPDATE study_settings SET cover_file = NULL, cover_preset = ? WHERE user_id = ?", "si", $preset, $user_id);
+            delete_cover_file($old);
+        } elseif ($act === "cover_pos" && array_key_exists($_POST["cover_pos"] ?? "", COVER_POSITIONS)) {
+            $pos = $_POST["cover_pos"];
+            $run("UPDATE study_settings SET cover_pos = ? WHERE user_id = ?", "si", $pos, $user_id);
+        } elseif ($act === "cover_remove") {
+            $run("UPDATE study_settings SET cover_file = NULL, cover_preset = NULL WHERE user_id = ?", "i", $user_id);
+            delete_cover_file($old);
+        }
+        redirect("study.php?tab=" . $tab);
+    }
+
+    // ----- Health: habits and workout checklist (ticks may come by fetch() and get JSON back) -----
+    if (str_starts_with($act, "health_")) {
+        $day = health_day($_POST["day"] ?? "");
+        $ajax = ($_SERVER["HTTP_X_REQUESTED_WITH"] ?? "") === "fetch";
+        $is_habit = ($_POST["kind"] ?? "") === "habit";
+        $table = $is_habit ? "study_habits" : "study_exercises";
+        $log = $is_habit ? "study_habit_log" : "study_exercise_log";
+        $column = $is_habit ? "habit_id" : "exercise_id";
+        $block = array_key_exists($_POST["block"] ?? "", WORKOUT_BLOCKS) ? $_POST["block"] : "core";
+        $name = study_text($_POST["name"] ?? "", 120);
+        $target = study_text($_POST["target"] ?? "", 60);
+        $weight = study_text($_POST["weight"] ?? "", 30);
+        $owned = $id > 0 && $run("SELECT id FROM $table WHERE id = ? AND user_id = ?", "ii", $id, $user_id)->get_result()->fetch_assoc();
+        $result = [];
+
+        if ($act === "health_tick" && $owned) {
+            $done = $run("DELETE FROM $log WHERE $column = ? AND log_date = ? AND user_id = ?", "isi", $id, $day, $user_id)->affected_rows === 0;
+            if ($done) {
+                $run("INSERT IGNORE INTO $log ($column, log_date, user_id) VALUES (?, ?, ?)", "isi", $id, $day, $user_id);
+            }
+            $dates = array_column($run("SELECT log_date FROM $log WHERE $column = ? AND user_id = ?", "ii", $id, $user_id)->get_result()->fetch_all(MYSQLI_ASSOC), "log_date");
+            $result = ["id" => $id, "kind" => $is_habit ? "habit" : "exercise", "done" => $done, "streak" => health_streak($dates, date("Y-m-d"))];
+            if (!$is_habit) {
+                $result["ex_done"] = (int)$run("SELECT COUNT(*) AS n FROM study_exercise_log WHERE log_date = ? AND user_id = ?", "si", $day, $user_id)->get_result()->fetch_assoc()["n"];
+                $result["ex_total"] = (int)$run("SELECT COUNT(*) AS n FROM study_exercises WHERE user_id = ?", "i", $user_id)->get_result()->fetch_assoc()["n"];
+            }
+            $anchor = "#" . $result["kind"] . "-" . $id;
+        } elseif ($act === "health_weight" && $owned && !$is_habit) {
+            $run("UPDATE study_exercises SET weight = ? WHERE id = ? AND user_id = ?", "sii", $weight, $id, $user_id);
+            $result = ["id" => $id, "weight" => $weight];
+            $anchor = "#exercise-" . $id;
+        } elseif ($act === "health_add" && $name !== "") {
+            $sort = (int)$run("SELECT COALESCE(MAX(sort), 0) + 1 AS n FROM $table WHERE user_id = ?", "i", $user_id)->get_result()->fetch_assoc()["n"];
+            if ($is_habit) {
+                $run("INSERT INTO study_habits (name, sort, user_id) VALUES (?, ?, ?)", "sii", $name, $sort, $user_id);
+            } else {
+                $run("INSERT INTO study_exercises (block, name, target, weight, sort, user_id) VALUES (?, ?, ?, ?, ?, ?)", "ssssii", $block, $name, $target, $weight, $sort, $user_id);
+            }
+            $anchor = "#manage";
+        } elseif ($act === "health_save" && $owned && $name !== "") {
+            if ($is_habit) {
+                $run("UPDATE study_habits SET name = ? WHERE id = ? AND user_id = ?", "sii", $name, $id, $user_id);
+            } else {
+                $run("UPDATE study_exercises SET block = ?, name = ?, target = ?, weight = ? WHERE id = ? AND user_id = ?", "ssssii", $block, $name, $target, $weight, $id, $user_id);
+            }
+            $anchor = "#manage";
+        } elseif ($act === "health_delete" && $owned) {
+            $run("DELETE FROM $table WHERE id = ? AND user_id = ?", "ii", $id, $user_id);
+            $anchor = "#manage";
+        }
+
+        if ($ajax) {
+            header("Content-Type: application/json; charset=UTF-8");
+            echo json_encode($result ?: ["error" => true]);
+            exit;
+        }
+
+        redirect("study.php?tab=health" . ($day !== date("Y-m-d") ? "&day=" . $day : "") . $anchor);
     }
 
     switch ($act) {
@@ -500,8 +589,77 @@ study_head(t("hub") . " · " . $site_name);
         <div class="flex gap-2 text-sm"><?php lang_switch(); ?></div>
     </div>
 
-    <h1 class="text-3xl font-bold mt-4"><?= e(t("hub")) ?></h1>
-    <p class="text-slate-600 mb-6"><?= e(t("hub_hint")) ?></p>
+    <?php $cover = cover_background($settings_row); $cover_flash = $_SESSION["cover_flash"] ?? null; unset($_SESSION["cover_flash"]); ?>
+    <?php if ($cover): ?>
+        <header id="hub-cover" class="relative mt-4 mb-6 rounded-2xl overflow-hidden h-44 md:h-60 shadow-sm" style="background: <?= e($cover) ?>">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+            <button type="button" onclick="document.getElementById('cover-dialog').showModal()" class="absolute top-3 right-3 bg-white/85 backdrop-blur text-slate-900 text-sm px-3 py-1.5 rounded-full shadow hover:bg-white">✎ <?= e(t("cover_change")) ?></button>
+            <div class="absolute bottom-0 left-0 right-0 p-5 md:p-7 text-white">
+                <h1 class="text-3xl md:text-4xl font-bold drop-shadow"><?= e(t("hub")) ?></h1>
+                <p class="text-white/85 drop-shadow"><?= e(t("hub_hint")) ?></p>
+            </div>
+        </header>
+    <?php else: ?>
+        <div class="flex flex-wrap justify-between items-end gap-3 mt-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold"><?= e(t("hub")) ?></h1>
+                <p class="text-slate-600"><?= e(t("hub_hint")) ?></p>
+            </div>
+            <button type="button" onclick="document.getElementById('cover-dialog').showModal()" class="text-sm px-3 py-1.5 rounded-full border bg-white hover:bg-slate-50">🖼 <?= e(t("cover_add")) ?></button>
+        </div>
+    <?php endif; ?>
+    <?php if ($cover_flash): ?><p class="mb-4 text-red-700"><?= e($cover_flash) ?></p><?php endif; ?>
+
+    <dialog id="cover-dialog" class="rounded-2xl p-0 w-[min(36rem,calc(100vw-2rem))] backdrop:bg-black/50">
+        <div class="p-5 space-y-5">
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-lg"><?= e(t("cover")) ?></h2>
+                <form method="dialog"><button class="text-slate-500 px-2" aria-label="<?= e(t("cover_close")) ?>">✕</button></form>
+            </div>
+
+            <div id="cover-preview" class="h-32 rounded-xl border bg-slate-100" style="<?= $cover ? "background: " . e($cover) : "" ?>"></div>
+
+            <form method="POST" enctype="multipart/form-data" class="space-y-3">
+                <?= csrf_field() ?><input type="hidden" name="act" value="cover_upload">
+                <div class="font-medium"><?= e(t("cover_photo")) ?></div>
+                <input type="file" name="cover_file" id="cover-file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" required class="w-full border rounded-lg px-3 py-2">
+                <div class="text-xs text-slate-500"><?= e(t("cover_photo_hint")) ?></div>
+                <div class="text-sm"><?= e(t("cover_pos")) ?>:
+                    <?php foreach (COVER_POSITIONS as $key => $label): ?>
+                        <label class="ml-2 whitespace-nowrap"><input type="radio" name="cover_pos" value="<?= $key ?>" <?= ($settings_row["cover_pos"] ?? "center") === $key ? "checked" : "" ?>> <?= e(tl($label)) ?></label>
+                    <?php endforeach; ?>
+                </div>
+                <button class="<?= $btn ?>"><?= e(t("upload")) ?></button>
+            </form>
+
+            <?php if (!empty($settings_row["cover_file"])): ?>
+                <form method="POST" class="flex flex-wrap items-center gap-2 text-sm">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="cover_pos">
+                    <span><?= e(t("cover_pos")) ?>:</span>
+                    <?php foreach (COVER_POSITIONS as $key => $label): ?>
+                        <button name="cover_pos" value="<?= $key ?>" class="px-3 py-1 rounded-full border <?= $settings_row["cover_pos"] === $key ? "bg-slate-900 text-white" : "bg-white" ?>"><?= e(tl($label)) ?></button>
+                    <?php endforeach; ?>
+                </form>
+            <?php endif; ?>
+
+            <div>
+                <div class="font-medium mb-2"><?= e(t("cover_presets")) ?></div>
+                <form method="POST" class="grid grid-cols-4 gap-2">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="cover_preset">
+                    <?php foreach (COVER_PRESETS as $key => $p): ?>
+                        <button name="preset" value="<?= $key ?>" title="<?= e(tl([$p[0], $p[1]])) ?>" class="h-16 rounded-xl text-xs font-medium text-white flex items-end p-1.5 <?= ($settings_row["cover_preset"] ?? "") === $key && empty($settings_row["cover_file"]) ? "ring-2 ring-offset-2 ring-slate-900" : "" ?>" style="background: <?= $p[2] ?>"><span class="drop-shadow"><?= e(tl([$p[0], $p[1]])) ?></span></button>
+                    <?php endforeach; ?>
+                </form>
+            </div>
+
+            <?php if ($cover): ?>
+                <form method="POST">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="cover_remove">
+                    <button class="text-red-700 text-sm"><?= e(t("cover_remove")) ?></button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </dialog>
 
     <nav class="flex flex-wrap gap-2 mb-8">
         <?php foreach ($tabs as $key): ?>
@@ -523,9 +681,11 @@ if ($tab === "overview"):
     $imo_solved = (int)$q("SELECT COUNT(*) AS n FROM study_imo_problems WHERE user_id = ? AND status = 'solved'", "i", $user_id)[0]["n"];
     $exam_days = $settings_row["sat_exam_date"] ? (int)ceil((strtotime($settings_row["sat_exam_date"]) - strtotime($today)) / 86400) : null;
     $bank_player = sat_bank_count() ? sat_player($user_id) : null;
+    $health_habits_total = (int)$q("SELECT COUNT(*) AS n FROM study_habits WHERE user_id = ?", "i", $user_id)[0]["n"];
+    $health_habits_today = (int)$q("SELECT COUNT(*) AS n FROM study_habit_log WHERE user_id = ? AND log_date = ?", "is", $user_id, $today)[0]["n"];
 ?>
 
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <a href="?tab=tracker" class="<?= $card ?>">
             <div class="text-sm text-slate-500"><?= e(t("week_total")) ?></div>
             <div class="text-2xl font-bold"><?= e(minutes_label($week_minutes)) ?></div>
@@ -554,6 +714,11 @@ if ($tab === "overview"):
             <div class="text-sm text-slate-500">IMO</div>
             <div class="text-2xl font-bold"><?= $imo_solved ?></div>
             <div class="text-xs text-slate-500 mt-1"><?= e(t("solved_count")) ?></div>
+        </a>
+        <a href="?tab=health" class="<?= $card ?>">
+            <div class="text-sm text-slate-500"><?= e(t("health")) ?></div>
+            <div class="text-2xl font-bold"><?= $health_habits_today ?> / <?= $health_habits_total ?></div>
+            <div class="text-xs text-slate-500 mt-1"><?= e(t("h_habits")) ?> · <?= e(t("h_today")) ?></div>
         </a>
     </div>
 
@@ -1236,11 +1401,170 @@ elseif ($tab === "corrections"):
         </details>
     <?php endif; ?>
 
+<?php
+// =================================================================
+// HEALTH: habits and workout checklist
+// =================================================================
+elseif ($tab === "health"):
+
+    $day = health_day($_GET["day"] ?? "");
+    $is_today = $day === $today;
+    $prev_day = date("Y-m-d", strtotime($day . " -1 day"));
+    $next_day = date("Y-m-d", strtotime($day . " +1 day"));
+    $habits = $q("SELECT * FROM study_habits WHERE user_id = ? ORDER BY sort, id", "i", $user_id);
+    $exercises = $q("SELECT * FROM study_exercises WHERE user_id = ? ORDER BY sort, id", "i", $user_id);
+
+    $habit_dates = [];
+    foreach ($q("SELECT habit_id, log_date FROM study_habit_log WHERE user_id = ? AND log_date > ? - INTERVAL 400 DAY", "is", $user_id, $today) as $r) {
+        $habit_dates[(int)$r["habit_id"]][] = $r["log_date"];
+    }
+    $ex_done = array_flip(array_map("intval", array_column($q("SELECT exercise_id FROM study_exercise_log WHERE user_id = ? AND log_date = ?", "is", $user_id, $day), "exercise_id")));
+    $workout_dates = array_column($q("SELECT DISTINCT log_date FROM study_exercise_log WHERE user_id = ? AND log_date > ? - INTERVAL 400 DAY", "is", $user_id, $today), "log_date");
+    $week_workouts = count(array_filter($workout_dates, fn($d) => $d >= $week_start && $d <= $today));
+    $last30 = [];
+    for ($i = 29; $i >= 0; $i--) {
+        $last30[] = date("Y-m-d", strtotime($today . " -$i day"));
+    }
+    $by_block = [];
+    foreach ($exercises as $x) {
+        $by_block[$x["block"]][] = $x;
+    }
+    $ex_total = count($exercises);
+    $ex_count = count(array_intersect_key($ex_done, array_flip(array_map("intval", array_column($exercises, "id")))));
+    $tick_on = "bg-green-600 border-green-600 text-white";
+    $tick_off = "bg-white border-slate-400 text-transparent";
+?>
+
+    <h2 class="text-2xl font-bold"><?= e(t("h_title")) ?></h2>
+    <p class="text-slate-600 mt-1"><?= e(t("h_note")) ?></p>
+    <p class="text-sm text-amber-800 mt-1"><?= e(t("h_safety")) ?></p>
+
+    <div class="flex flex-wrap items-center gap-2 my-5">
+        <a href="?tab=health&day=<?= $prev_day ?>" class="px-3 py-1 border rounded-lg bg-white" title="<?= e(t("h_prev")) ?>">←</a>
+        <span class="font-bold text-lg px-2"><?= e(date("d.m.Y", strtotime($day))) ?><?php if ($is_today): ?> · <?= e(t("h_today")) ?><?php endif; ?></span>
+        <?php if (!$is_today): ?>
+            <a href="?tab=health&day=<?= $next_day ?>" class="px-3 py-1 border rounded-lg bg-white" title="<?= e(t("h_next")) ?>">→</a>
+            <a href="?tab=health" class="px-3 py-1 border rounded-lg bg-white"><?= e(t("h_today")) ?></a>
+        <?php endif; ?>
+    </div>
+
+    <div class="grid lg:grid-cols-5 gap-6">
+
+        <section class="<?= $card ?> lg:col-span-2 self-start">
+            <h3 class="font-bold text-lg mb-3"><?= e(t("h_habits")) ?></h3>
+            <?php if (!$habits): ?><p class="text-slate-500"><?= e(t("h_empty")) ?></p><?php endif; ?>
+            <?php foreach ($habits as $h): $hid = (int)$h["id"]; $dates = $habit_dates[$hid] ?? []; $set = array_flip($dates); $done = isset($set[$day]); ?>
+                <div id="habit-<?= $hid ?>" class="py-3 border-b last:border-b-0">
+                    <form method="POST" class="js-health flex items-center gap-3">
+                        <?= csrf_field() ?><input type="hidden" name="act" value="health_tick"><input type="hidden" name="kind" value="habit"><input type="hidden" name="id" value="<?= $hid ?>"><input type="hidden" name="day" value="<?= $day ?>">
+                        <button class="js-tick w-7 h-7 rounded-md border-2 shrink-0 font-bold <?= $done ? $tick_on : $tick_off ?>" aria-pressed="<?= $done ? "true" : "false" ?>">✓</button>
+                        <span class="font-medium flex-1"><?= e($h["name"]) ?></span>
+                        <span class="text-sm text-slate-500 whitespace-nowrap">🔥 <span class="js-streak"><?= health_streak($dates, $today) ?></span> <?= e(t("h_streak")) ?></span>
+                    </form>
+                    <div class="flex gap-[3px] mt-2" title="<?= e(t("h_last30")) ?>">
+                        <?php foreach ($last30 as $d): ?><span data-day="<?= $d ?>" class="h-3 flex-1 rounded-sm <?= isset($set[$d]) ? "bg-green-600" : "bg-slate-200" ?>"></span><?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+            <p class="text-xs text-slate-500 mt-2"><?= e(t("h_last30")) ?></p>
+        </section>
+
+        <section class="<?= $card ?> lg:col-span-3">
+            <div class="flex flex-wrap justify-between items-end gap-3 mb-2">
+                <h3 class="font-bold text-lg"><?= e(t("h_workout")) ?></h3>
+                <div class="text-sm text-slate-600"><?= e(t("h_week")) ?>: <b><?= $week_workouts ?></b> / 7 · <?= e(t("h_workout_streak")) ?>: <b><?= health_streak($workout_dates, $today) ?></b></div>
+            </div>
+            <div class="h-3 bg-slate-200 rounded"><div id="ex-bar" class="h-3 bg-green-600 rounded transition-all" style="width: <?= $ex_total ? round($ex_count / $ex_total * 100) : 0 ?>%"></div></div>
+            <div class="text-sm text-slate-600 mt-1"><span id="ex-done"><?= $ex_count ?></span> / <span id="ex-total"><?= $ex_total ?></span> <?= e(t("h_done")) ?>
+                <span id="ex-complete" class="text-green-700 font-bold <?= $ex_total && $ex_count >= $ex_total ? "" : "hidden" ?>"> · <?= e(t("h_all_done")) ?></span></div>
+
+            <?php if (!$exercises): ?><p class="text-slate-500 mt-4"><?= e(t("h_empty")) ?></p><?php endif; ?>
+            <?php foreach (WORKOUT_BLOCKS as $block => $label): if (empty($by_block[$block])) continue; ?>
+                <h4 class="font-bold mt-5 mb-1 text-slate-700"><?= e(tl($label)) ?></h4>
+                <?php foreach ($by_block[$block] as $x): $xid = (int)$x["id"]; $done = isset($ex_done[$xid]); ?>
+                    <div id="exercise-<?= $xid ?>" class="flex flex-wrap items-center gap-3 py-2 border-b last:border-b-0">
+                        <form method="POST" class="js-health">
+                            <?= csrf_field() ?><input type="hidden" name="act" value="health_tick"><input type="hidden" name="kind" value="exercise"><input type="hidden" name="id" value="<?= $xid ?>"><input type="hidden" name="day" value="<?= $day ?>">
+                            <button class="js-tick w-7 h-7 rounded-md border-2 font-bold <?= $done ? $tick_on : $tick_off ?>" aria-pressed="<?= $done ? "true" : "false" ?>">✓</button>
+                        </form>
+                        <span class="flex-1 min-w-[10rem]"><?= e($x["name"]) ?> <span class="text-slate-500">· <?= e($x["target"]) ?></span></span>
+                        <form method="POST" class="js-health flex items-center gap-1 text-sm">
+                            <?= csrf_field() ?><input type="hidden" name="act" value="health_weight"><input type="hidden" name="kind" value="exercise"><input type="hidden" name="id" value="<?= $xid ?>"><input type="hidden" name="day" value="<?= $day ?>">
+                            <input name="weight" value="<?= e($x["weight"]) ?>" maxlength="30" placeholder="<?= e(t("h_weight")) ?>" class="border rounded px-2 py-1 w-32">
+                            <button class="px-2 py-1 border rounded bg-white">✓</button>
+                        </form>
+                    </div>
+                <?php endforeach; ?>
+            <?php endforeach; ?>
+        </section>
+    </div>
+
+    <details id="manage" class="<?= $card ?> mt-6">
+        <summary class="cursor-pointer font-bold text-lg"><?= e(t("h_manage")) ?></summary>
+
+        <h4 class="font-bold mt-4 mb-2"><?= e(t("h_habits")) ?></h4>
+        <?php foreach ($habits as $h): ?>
+            <div class="flex flex-wrap gap-2 py-1">
+                <form method="POST" class="flex gap-2 flex-1 min-w-[16rem]">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="health_save"><input type="hidden" name="kind" value="habit"><input type="hidden" name="id" value="<?= (int)$h["id"] ?>">
+                    <input name="name" value="<?= e($h["name"]) ?>" maxlength="120" required class="<?= $input ?>">
+                    <button class="<?= $btn ?>"><?= e(t("h_save")) ?></button>
+                </form>
+                <form method="POST" onsubmit="return confirm('<?= e(t("h_confirm")) ?>')">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="health_delete"><input type="hidden" name="kind" value="habit"><input type="hidden" name="id" value="<?= (int)$h["id"] ?>">
+                    <button class="px-3 py-2 border rounded-lg text-red-700"><?= e(t("h_delete")) ?></button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+        <form method="POST" class="flex gap-2 mt-2">
+            <?= csrf_field() ?><input type="hidden" name="act" value="health_add"><input type="hidden" name="kind" value="habit">
+            <input name="name" maxlength="120" required placeholder="<?= e(t("h_add_habit")) ?>" class="<?= $input ?>">
+            <button class="<?= $btn ?> whitespace-nowrap">+ <?= e(t("h_add_habit")) ?></button>
+        </form>
+
+        <h4 class="font-bold mt-6 mb-2"><?= e(t("h_workout")) ?></h4>
+        <?php $block_select = function ($current) { ?>
+            <select name="block" class="border rounded-lg px-2 py-2">
+                <?php foreach (WORKOUT_BLOCKS as $key => $label): ?><option value="<?= $key ?>" <?= $key === $current ? "selected" : "" ?>><?= e(tl($label)) ?></option><?php endforeach; ?>
+            </select>
+        <?php }; ?>
+        <?php foreach ($exercises as $x): ?>
+            <div class="flex flex-wrap gap-2 py-1 border-b">
+                <form method="POST" class="flex flex-wrap gap-2 flex-1">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="health_save"><input type="hidden" name="kind" value="exercise"><input type="hidden" name="id" value="<?= (int)$x["id"] ?>">
+                    <?php $block_select($x["block"]); ?>
+                    <input name="name" value="<?= e($x["name"]) ?>" maxlength="120" required title="<?= e(t("h_name")) ?>" class="border rounded-lg px-3 py-2 flex-1 min-w-[12rem]">
+                    <input name="target" value="<?= e($x["target"]) ?>" maxlength="60" title="<?= e(t("h_target")) ?>" placeholder="<?= e(t("h_target")) ?>" class="border rounded-lg px-3 py-2 w-36">
+                    <input name="weight" value="<?= e($x["weight"]) ?>" maxlength="30" title="<?= e(t("h_weight")) ?>" placeholder="<?= e(t("h_weight")) ?>" class="border rounded-lg px-3 py-2 w-32">
+                    <button class="<?= $btn ?>"><?= e(t("h_save")) ?></button>
+                </form>
+                <form method="POST" onsubmit="return confirm('<?= e(t("h_confirm")) ?>')">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="health_delete"><input type="hidden" name="kind" value="exercise"><input type="hidden" name="id" value="<?= (int)$x["id"] ?>">
+                    <button class="px-3 py-2 border rounded-lg text-red-700"><?= e(t("h_delete")) ?></button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+        <form method="POST" class="flex flex-wrap gap-2 mt-3">
+            <?= csrf_field() ?><input type="hidden" name="act" value="health_add"><input type="hidden" name="kind" value="exercise">
+            <?php $block_select("core"); ?>
+            <input name="name" maxlength="120" required placeholder="<?= e(t("h_name")) ?>" class="border rounded-lg px-3 py-2 flex-1 min-w-[12rem]">
+            <input name="target" maxlength="60" placeholder="<?= e(t("h_target")) ?>" class="border rounded-lg px-3 py-2 w-36">
+            <input name="weight" maxlength="30" placeholder="<?= e(t("h_weight")) ?>" class="border rounded-lg px-3 py-2 w-32">
+            <button class="<?= $btn ?> whitespace-nowrap">+ <?= e(t("h_add_ex")) ?></button>
+        </form>
+    </details>
+
 <?php endif; ?>
 
 </div>
 
 <script>
+// Cover: preview the chosen photo before uploading
+document.getElementById("cover-file")?.addEventListener("change", function () {
+    const f = this.files && this.files[0];
+    if (f) document.getElementById("cover-preview").style.background = "url('" + URL.createObjectURL(f) + "') center / cover no-repeat";
+});
+
 // SAT task book: check answers without reloading the page
 document.addEventListener("submit", async function (e) {
     const form = e.target;
@@ -1267,6 +1591,44 @@ document.addEventListener("submit", async function (e) {
     } catch (err) {
         form.submit();
     }
+});
+</script>
+
+<script>
+// Health: tick habits and exercises without reloading the page
+document.addEventListener("submit", async function (e) {
+    const form = e.target;
+    if (!form.classList.contains("js-health")) return;
+    e.preventDefault();
+    const button = form.querySelector("button");
+    if (button) button.disabled = true;
+    try {
+        const res = await fetch(location.href, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" } });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        if (d.error) throw new Error("error");
+        if ("done" in d) {
+            const tick = form.querySelector(".js-tick");
+            tick.className = tick.className.replace(/bg-\S+|border-(green|slate)-\d+|text-(white|transparent)/g, "").trim() + " " +
+                (d.done ? "<?= "bg-green-600 border-green-600 text-white" ?>" : "<?= "bg-white border-slate-400 text-transparent" ?>");
+            tick.setAttribute("aria-pressed", d.done ? "true" : "false");
+            const streak = form.querySelector(".js-streak");
+            if (streak) streak.textContent = d.streak;
+            const cell = document.querySelector("#habit-" + d.id + " [data-day='" + form.elements.day.value + "']");
+            if (cell) cell.className = cell.className.replace(/bg-\S+/, d.done ? "bg-green-600" : "bg-slate-200");
+            if ("ex_done" in d) {
+                document.getElementById("ex-done").textContent = d.ex_done;
+                document.getElementById("ex-bar").style.width = (d.ex_total ? Math.round(d.ex_done / d.ex_total * 100) : 0) + "%";
+                document.getElementById("ex-complete").classList.toggle("hidden", !(d.ex_total && d.ex_done >= d.ex_total));
+            }
+        } else if (button) {
+            button.textContent = "<?= e(t("h_saved")) ?>";
+            setTimeout(() => { button.textContent = "✓"; }, 1500);
+        }
+    } catch (err) {
+        form.submit();
+    }
+    if (button) button.disabled = false;
 });
 </script>
 
