@@ -16,6 +16,7 @@ $me = $stmt->get_result()->fetch_assoc();
 require_once "study_lib.php";
 require_once "sat_bank_lib.php";
 require_once "health_lib.php";
+require_once "cover_lib.php";
 
 $tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "corrections", "health"];
 $tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
@@ -247,6 +248,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         redirect("study.php?tab=satbank&module=" . sat_module_of($no) . "#task-" . $no);
+    }
+
+    // ----- Cover at the top of the hub (own photo or a ready-made one) -----
+    if (str_starts_with($act, "cover_")) {
+        $old = $settings_row["cover_file"] ?? null;
+        if ($act === "cover_upload") {
+            $file = save_cover_upload();
+            if ($file) {
+                $pos = array_key_exists($_POST["cover_pos"] ?? "", COVER_POSITIONS) ? $_POST["cover_pos"] : "center";
+                $run("UPDATE study_settings SET cover_file = ?, cover_preset = NULL, cover_pos = ? WHERE user_id = ?", "ssi", $file, $pos, $user_id);
+                delete_cover_file($old);
+            } else {
+                $_SESSION["cover_flash"] = t("cover_bad");
+            }
+        } elseif ($act === "cover_preset" && isset(COVER_PRESETS[$_POST["preset"] ?? ""])) {
+            $preset = $_POST["preset"];
+            $run("UPDATE study_settings SET cover_file = NULL, cover_preset = ? WHERE user_id = ?", "si", $preset, $user_id);
+            delete_cover_file($old);
+        } elseif ($act === "cover_pos" && array_key_exists($_POST["cover_pos"] ?? "", COVER_POSITIONS)) {
+            $pos = $_POST["cover_pos"];
+            $run("UPDATE study_settings SET cover_pos = ? WHERE user_id = ?", "si", $pos, $user_id);
+        } elseif ($act === "cover_remove") {
+            $run("UPDATE study_settings SET cover_file = NULL, cover_preset = NULL WHERE user_id = ?", "i", $user_id);
+            delete_cover_file($old);
+        }
+        redirect("study.php?tab=" . $tab);
     }
 
     // ----- Health: habits and workout checklist (ticks may come by fetch() and get JSON back) -----
@@ -562,8 +589,77 @@ study_head(t("hub") . " · " . $site_name);
         <div class="flex gap-2 text-sm"><?php lang_switch(); ?></div>
     </div>
 
-    <h1 class="text-3xl font-bold mt-4"><?= e(t("hub")) ?></h1>
-    <p class="text-slate-600 mb-6"><?= e(t("hub_hint")) ?></p>
+    <?php $cover = cover_background($settings_row); $cover_flash = $_SESSION["cover_flash"] ?? null; unset($_SESSION["cover_flash"]); ?>
+    <?php if ($cover): ?>
+        <header id="hub-cover" class="relative mt-4 mb-6 rounded-2xl overflow-hidden h-44 md:h-60 shadow-sm" style="background: <?= e($cover) ?>">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+            <button type="button" onclick="document.getElementById('cover-dialog').showModal()" class="absolute top-3 right-3 bg-white/85 backdrop-blur text-slate-900 text-sm px-3 py-1.5 rounded-full shadow hover:bg-white">✎ <?= e(t("cover_change")) ?></button>
+            <div class="absolute bottom-0 left-0 right-0 p-5 md:p-7 text-white">
+                <h1 class="text-3xl md:text-4xl font-bold drop-shadow"><?= e(t("hub")) ?></h1>
+                <p class="text-white/85 drop-shadow"><?= e(t("hub_hint")) ?></p>
+            </div>
+        </header>
+    <?php else: ?>
+        <div class="flex flex-wrap justify-between items-end gap-3 mt-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold"><?= e(t("hub")) ?></h1>
+                <p class="text-slate-600"><?= e(t("hub_hint")) ?></p>
+            </div>
+            <button type="button" onclick="document.getElementById('cover-dialog').showModal()" class="text-sm px-3 py-1.5 rounded-full border bg-white hover:bg-slate-50">🖼 <?= e(t("cover_add")) ?></button>
+        </div>
+    <?php endif; ?>
+    <?php if ($cover_flash): ?><p class="mb-4 text-red-700"><?= e($cover_flash) ?></p><?php endif; ?>
+
+    <dialog id="cover-dialog" class="rounded-2xl p-0 w-[min(36rem,calc(100vw-2rem))] backdrop:bg-black/50">
+        <div class="p-5 space-y-5">
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-lg"><?= e(t("cover")) ?></h2>
+                <form method="dialog"><button class="text-slate-500 px-2" aria-label="<?= e(t("cover_close")) ?>">✕</button></form>
+            </div>
+
+            <div id="cover-preview" class="h-32 rounded-xl border bg-slate-100" style="<?= $cover ? "background: " . e($cover) : "" ?>"></div>
+
+            <form method="POST" enctype="multipart/form-data" class="space-y-3">
+                <?= csrf_field() ?><input type="hidden" name="act" value="cover_upload">
+                <div class="font-medium"><?= e(t("cover_photo")) ?></div>
+                <input type="file" name="cover_file" id="cover-file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" required class="w-full border rounded-lg px-3 py-2">
+                <div class="text-xs text-slate-500"><?= e(t("cover_photo_hint")) ?></div>
+                <div class="text-sm"><?= e(t("cover_pos")) ?>:
+                    <?php foreach (COVER_POSITIONS as $key => $label): ?>
+                        <label class="ml-2 whitespace-nowrap"><input type="radio" name="cover_pos" value="<?= $key ?>" <?= ($settings_row["cover_pos"] ?? "center") === $key ? "checked" : "" ?>> <?= e(tl($label)) ?></label>
+                    <?php endforeach; ?>
+                </div>
+                <button class="<?= $btn ?>"><?= e(t("upload")) ?></button>
+            </form>
+
+            <?php if (!empty($settings_row["cover_file"])): ?>
+                <form method="POST" class="flex flex-wrap items-center gap-2 text-sm">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="cover_pos">
+                    <span><?= e(t("cover_pos")) ?>:</span>
+                    <?php foreach (COVER_POSITIONS as $key => $label): ?>
+                        <button name="cover_pos" value="<?= $key ?>" class="px-3 py-1 rounded-full border <?= $settings_row["cover_pos"] === $key ? "bg-slate-900 text-white" : "bg-white" ?>"><?= e(tl($label)) ?></button>
+                    <?php endforeach; ?>
+                </form>
+            <?php endif; ?>
+
+            <div>
+                <div class="font-medium mb-2"><?= e(t("cover_presets")) ?></div>
+                <form method="POST" class="grid grid-cols-4 gap-2">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="cover_preset">
+                    <?php foreach (COVER_PRESETS as $key => $p): ?>
+                        <button name="preset" value="<?= $key ?>" title="<?= e(tl([$p[0], $p[1]])) ?>" class="h-16 rounded-xl text-xs font-medium text-white flex items-end p-1.5 <?= ($settings_row["cover_preset"] ?? "") === $key && empty($settings_row["cover_file"]) ? "ring-2 ring-offset-2 ring-slate-900" : "" ?>" style="background: <?= $p[2] ?>"><span class="drop-shadow"><?= e(tl([$p[0], $p[1]])) ?></span></button>
+                    <?php endforeach; ?>
+                </form>
+            </div>
+
+            <?php if ($cover): ?>
+                <form method="POST">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="cover_remove">
+                    <button class="text-red-700 text-sm"><?= e(t("cover_remove")) ?></button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </dialog>
 
     <nav class="flex flex-wrap gap-2 mb-8">
         <?php foreach ($tabs as $key): ?>
@@ -1463,6 +1559,12 @@ elseif ($tab === "health"):
 </div>
 
 <script>
+// Cover: preview the chosen photo before uploading
+document.getElementById("cover-file")?.addEventListener("change", function () {
+    const f = this.files && this.files[0];
+    if (f) document.getElementById("cover-preview").style.background = "url('" + URL.createObjectURL(f) + "') center / cover no-repeat";
+});
+
 // SAT task book: check answers without reloading the page
 document.addEventListener("submit", async function (e) {
     const form = e.target;
