@@ -195,6 +195,13 @@ $user = $stmt->get_result()->fetch_assoc();
 </a><a href="account-settings.php" class="flex items-center gap-4 py-3 text-on-secondary-container px-4 hover:bg-surface-variant transition-all duration-150">
 <span class="material-symbols-outlined" data-icon="settings">settings</span>
 <span class="text-label-caps font-label-caps">Account Settings</span>
+</a>
+<?php if (!empty($user["free_access"])): ?>
+<a href="study.php" class="flex items-center gap-4 py-3 px-4 mt-2 mx-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+<span class="text-label-caps font-label-caps">Study Hub</span>
+</a>
+<?php endif; ?>
 </nav>
 </aside>
 <!-- Main Content -->
@@ -314,6 +321,10 @@ Special Access
 <p class="p-4 rounded bg-green-100 text-green-800">
 ✔ Your account has special access — all publication fees are free for you.
 </p>
+
+<a href="study.php" class="inline-block mt-4 px-5 py-3 rounded-lg bg-primary text-white font-bold hover:opacity-90">
+Study Hub · Учебный кабинет →
+</a>
 
 <?php else: ?>
 

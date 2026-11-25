@@ -223,6 +223,18 @@ Welcome back,
 <span class="material-symbols-outlined" data-icon="settings">settings</span>
 <span class="text-label-caps font-label-caps">Account Settings</span>
 </a>
+<?php
+// Study Hub: only for special-access accounts
+$study_stmt = $conn->prepare("SELECT free_access FROM users WHERE id = ?");
+$study_stmt->bind_param("i", $_SESSION["user_id"]);
+$study_stmt->execute();
+$study_access = !empty($study_stmt->get_result()->fetch_assoc()["free_access"]);
+if ($study_access): ?>
+<a href="study.php" class="flex items-center gap-4 py-3 px-4 mt-2 mx-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="school">school</span>
+<span class="text-label-caps font-label-caps">Study Hub</span>
+</a>
+<?php endif; ?>
 </nav>
 </aside>
 
@@ -247,12 +259,7 @@ Welcome back,
     Discussion notifications<?= $discussion_unread ? " (" . $discussion_unread . " new)" : "" ?>
 </a>
 
-<?php
-// Study Hub: only for special-access accounts
-$study_stmt = $conn->prepare("SELECT free_access FROM users WHERE id = ?");
-$study_stmt->bind_param("i", $_SESSION["user_id"]);
-$study_stmt->execute();
-if (!empty($study_stmt->get_result()->fetch_assoc()["free_access"])): ?>
+<?php if ($study_access): ?>
 <a href="study.php" class="inline-block mt-3 ml-4 px-4 py-2 rounded-lg bg-primary text-white text-body-sm font-bold hover:opacity-90">
     Study Hub · Учебный кабинет →
 </a>
