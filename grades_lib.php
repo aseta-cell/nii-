@@ -19,19 +19,19 @@ function ensure_grades_columns()
 
 ensure_grades_columns();
 
-// Grade 10, NIS (IB track): the usual 14 subjects. Every name can be changed or deleted.
+// Grade 10, NIS (IB track): the usual subjects. Every name can be changed or deleted.
 const NIS_GRADE10_SUBJECTS = [
     ["Kazakh Language and Literature", "Казахский язык и литература"],
     ["Russian Language and Literature", "Русский язык и литература"],
     ["English", "Английский язык"],
-    ["Algebra", "Алгебра"],
-    ["Geometry", "Геометрия"],
+    ["Mathematics", "Математика"],
     ["Physics", "Физика"],
     ["Chemistry", "Химия"],
     ["Biology", "Биология"],
     ["History of Kazakhstan", "История Казахстана"],
     ["World History", "Всемирная история"],
     ["Geography", "География"],
+    ["Economics", "Экономика"],
     ["Computer Science", "Информатика"],
     ["Physical Education", "Физическая культура"],
     ["Global Perspectives and Project Work", "Глобальные перспективы и проектные работы"],
@@ -110,4 +110,38 @@ function ib_estimate(array $assessments, $boundaries)
         "count" => $count,
         "to_next" => $grade < 7 ? $mins[$grade] - $total : null,
     ];
+}
+
+// Earlier the list had Algebra and Geometry instead of Mathematics. If both are still
+// there without any works, they become one "Mathematics" subject.
+function merge_empty_algebra_geometry($user_id)
+{
+    global $conn;
+
+    $stmt = $conn->prepare("
+        SELECT s.id, s.name, COUNT(a.id) AS works FROM study_ib_subjects s
+        LEFT JOIN study_ib_assessments a ON a.subject_id = s.id
+        WHERE s.user_id = ? AND s.name IN ('Algebra', 'Алгебра', 'Geometry', 'Геометрия', 'Mathematics', 'Математика')
+        GROUP BY s.id, s.name
+    ");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $found = [];
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $r) {
+        $key = in_array($r["name"], ["Algebra", "Алгебра"], true) ? "algebra" : (in_array($r["name"], ["Geometry", "Геометрия"], true) ? "geometry" : "math");
+        $found[$key] = $r;
+    }
+
+    if (isset($found["algebra"], $found["geometry"]) && !isset($found["math"])
+        && !$found["algebra"]["works"] && !$found["geometry"]["works"]) {
+        $name = $found["algebra"]["name"] === "Алгебра" ? "Математика" : "Mathematics";
+        $a = (int)$found["algebra"]["id"];
+        $g = (int)$found["geometry"]["id"];
+        $stmt = $conn->prepare("UPDATE study_ib_subjects SET name = ? WHERE id = ? AND user_id = ?");
+        $stmt->bind_param("sii", $name, $a, $user_id);
+        $stmt->execute();
+        $stmt = $conn->prepare("DELETE FROM study_ib_subjects WHERE id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $g, $user_id);
+        $stmt->execute();
+    }
 }
