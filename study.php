@@ -18,8 +18,9 @@ require_once "sat_bank_lib.php";
 require_once "health_lib.php";
 require_once "cover_lib.php";
 require_once "grades_lib.php";
+require_once "transcript_lib.php";
 
-$tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "corrections", "health"];
+$tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "transcript", "corrections", "health"];
 $tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
 $today = date("Y-m-d");
 
@@ -466,6 +467,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 } else {
                     $run("UPDATE study_ib_subjects SET name = ?, level = ?, boundaries = ? WHERE id = ? AND user_id = ?", "sssii", $name, $level, $bounds, $id, $user_id);
                 }
+            }
+            break;
+
+        // ----- transcript: finished semester grades of all years -----
+        case "tr_save":
+            $g = (int)($_POST["grade_level"] ?? 0);
+            $sem = (int)($_POST["semester"] ?? 0);
+            if (in_array($g, TRANSCRIPT_GRADES, true) && in_array($sem, [1, 2], true)) {
+                foreach ((array)($_POST["subj"] ?? []) as $i => $subject) {
+                    $subject = study_text($subject, 100);
+                    $mark = study_int(((array)($_POST["mark"] ?? []))[$i] ?? "", 1, 7);
+                    if ($subject === "") {
+                        continue;
+                    }
+                    if ($mark === null) {
+                        $run("DELETE FROM study_past_grades WHERE grade_level = ? AND semester = ? AND subject = ? AND user_id = ?", "iisi", $g, $sem, $subject, $user_id);
+                    } else {
+                        $run("INSERT INTO study_past_grades (grade_level, semester, subject, mark, user_id) VALUES (?, ?, ?, ?, ?)
+                              ON DUPLICATE KEY UPDATE mark = VALUES(mark)", "iisii", $g, $sem, $subject, $mark, $user_id);
+                    }
+                }
+                $anchor = "&g=" . $g . "&s=" . $sem . "#enter";
+            }
+            break;
+
+        case "tr_current":
+            $g = (int)($_POST["current_grade"] ?? 10);
+            if (in_array($g, TRANSCRIPT_GRADES, true)) {
+                $run("UPDATE study_settings SET current_grade = ? WHERE user_id = ?", "ii", $g, $user_id);
             }
             break;
 
@@ -1495,6 +1525,212 @@ elseif ($tab === "grades"):
             </form>
         </div>
     </details>
+
+<?php
+// =================================================================
+// TRANSCRIPT: grades of all years, GPA by semester, cumulative GPA
+// =================================================================
+elseif ($tab === "transcript"):
+
+    $current_grade = (int)($settings_row["current_grade"] ?? 10);
+    $goal = (float)($settings_row["gpa_goal"] ?? 3.9);
+    $goal_name = (string)($settings_row["gpa_goal_name"] ?? "Harvard");
+    $subjects = $q("SELECT * FROM study_ib_subjects WHERE user_id = ? ORDER BY id", "i", $user_id);
+    $past = $q("SELECT * FROM study_past_grades WHERE user_id = ? ORDER BY grade_level, semester, id", "i", $user_id);
+
+    // Semesters: "grade-sem" => [marks: key => mark, names: key => name, forecast: bool]
+    $sems = [];
+    $names = [];
+    foreach ($past as $r) {
+        $k = $r["grade_level"] . "-" . $r["semester"];
+        $key = subject_key($r["subject"]);
+        $sems[$k]["marks"][$key] = (int)$r["mark"];
+        $sems[$k]["forecast"] = false;
+        $names[$key] = $names[$key] ?? $r["subject"];
+    }
+    // The current year: the forecast from the IB grades tab, unless final grades are entered
+    $all_assess = $q("SELECT * FROM study_ib_assessments WHERE user_id = ?", "i", $user_id);
+    foreach ([1, 2] as $sem) {
+        $k = $current_grade . "-" . $sem;
+        if (isset($sems[$k])) {
+            continue;
+        }
+        foreach ($subjects as $s) {
+            $list = array_filter($all_assess, fn($a) => (int)$a["subject_id"] === (int)$s["id"] && ($a["term"] ? (int)$a["term"] : ib_term_of($a["due_date"])) === $sem);
+            $est = ib_estimate(array_values($list), $s["boundaries"]);
+            if ($est) {
+                $key = subject_key($s["name"]);
+                $sems[$k]["marks"][$key] = $est["grade"];
+                $sems[$k]["forecast"] = true;
+                $names[$key] = $names[$key] ?? $s["name"];
+            }
+        }
+    }
+    uksort($sems, fn($a, $b) => array_map("intval", explode("-", $a)) <=> array_map("intval", explode("-", $b)));
+    foreach ($subjects as $s) {
+        $names[subject_key($s["name"])] = $names[subject_key($s["name"])] ?? $s["name"];
+    }
+
+    $points = [];
+    $cum_marks = [];
+    $cum_forecast = false;
+    foreach ($sems as $k => $data) {
+        [$g, $sm] = array_map("intval", explode("-", $k));
+        $gpa_value = gpa_of_marks($data["marks"]);
+        if ($gpa_value === null) {
+            continue;
+        }
+        $points[] = ["key" => $k, "grade" => $g, "sem" => $sm, "gpa" => $gpa_value, "forecast" => $data["forecast"], "n" => count($data["marks"])];
+        if ($g >= TRANSCRIPT_FROM_GRADE) {
+            $cum_marks = array_merge($cum_marks, array_values($data["marks"]));
+            $cum_forecast = $cum_forecast || $data["forecast"];
+        }
+    }
+    $cumulative = gpa_of_marks($cum_marks);
+    [$cum_words, $cum_color] = gpa_rating($cumulative ?? 0);
+
+    // Entry form: which grade and semester
+    $eg = in_array((int)($_GET["g"] ?? 0), TRANSCRIPT_GRADES, true) ? (int)$_GET["g"] : max(7, min(12, $current_grade - 1));
+    $es = ($_GET["s"] ?? "") === "2" ? 2 : 1;
+    $entered = [];
+    foreach ($past as $r) {
+        if ((int)$r["grade_level"] === $eg && (int)$r["semester"] === $es) {
+            $entered[subject_key($r["subject"])] = $r;
+        }
+    }
+    $form_rows = [];
+    foreach ($subjects as $s) {
+        $form_rows[subject_key($s["name"])] = $s["name"];
+    }
+    foreach ($entered as $key => $r) {
+        $form_rows[$key] = $form_rows[$key] ?? $r["subject"];
+    }
+    $mark_class = fn($m) => $m >= 6 ? "bg-green-600 text-white" : ($m >= 4 ? "bg-amber-300 text-slate-900" : "bg-red-600 text-white");
+    $sem_label = fn($g, $s) => $g . "·" . $s;
+?>
+
+    <h2 class="text-2xl font-bold"><?= e(t("tr_title")) ?></h2>
+    <p class="text-slate-600 mt-1 mb-5"><?= e(t("tr_hint")) ?></p>
+
+    <div class="grid lg:grid-cols-3 gap-6 mb-6">
+        <section class="<?= $card ?>">
+            <div class="text-sm text-slate-500"><?= e(t("tr_cumulative")) ?></div>
+            <?php if ($cumulative !== null): $gap = round($goal - $cumulative, 2); ?>
+                <div class="text-5xl font-bold mt-1" style="color: <?= $cum_color ?>"><?= $cum_forecast ? "≈" : "" ?><?= number_format($cumulative, 2) ?><span class="text-xl text-slate-400"> / 4.0</span></div>
+                <div class="text-lg font-semibold"><?= e(tl($cum_words)) ?></div>
+                <div class="mt-3 rounded-lg border-2 border-red-200 bg-red-50 p-3 text-sm">
+                    <div class="font-semibold text-red-800">★ <?= e($goal_name) ?> · <?= number_format($goal, 2) ?>+</div>
+                    <div class="text-xl font-bold <?= $gap <= 0 ? "text-green-700" : "text-red-800" ?>"><?= $gap <= 0 ? "✓ " . e(t("g_goal_ok")) : "+" . number_format($gap, 2) . " " . e(t("g_goal_left")) ?></div>
+                </div>
+            <?php else: ?>
+                <div class="text-5xl font-bold text-slate-300 mt-1">—</div>
+            <?php endif; ?>
+            <p class="text-xs text-slate-500 mt-3"><?= e(t("tr_cumulative_hint")) ?></p>
+            <form method="POST" class="flex items-center gap-2 text-sm mt-3">
+                <?= csrf_field() ?><input type="hidden" name="act" value="tr_current">
+                <label for="cur-grade"><?= e(t("tr_current_grade")) ?></label>
+                <select id="cur-grade" name="current_grade" onchange="this.form.submit()" class="border rounded-lg pl-3 pr-8 py-1 min-w-[4.5rem]">
+                    <?php foreach (TRANSCRIPT_GRADES as $g): ?><option value="<?= $g ?>" <?= $g === $current_grade ? "selected" : "" ?>><?= $g ?></option><?php endforeach; ?>
+                </select>
+            </form>
+        </section>
+
+        <section class="<?= $card ?> lg:col-span-2">
+            <h3 class="font-bold text-lg mb-2"><?= e(t("tr_by_sem")) ?></h3>
+            <?php if (!$points): ?>
+                <p class="text-slate-500"><?= e(t("tr_empty")) ?></p>
+            <?php else:
+                $W = 640; $H = 240; $L = 34; $R = 20; $T = 14; $B = 46;
+                $n = count($points);
+                $x = fn($i) => $n === 1 ? ($L + ($W - $L - $R) / 2) : $L + $i * ($W - $L - $R) / ($n - 1);
+                $y = fn($v) => $T + (4 - $v) / 4 * ($H - $T - $B);
+                $line = [];
+                foreach ($points as $i => $p) { $line[] = round($x($i), 1) . "," . round($y($p["gpa"]), 1); } ?>
+                <svg viewBox="0 0 <?= $W ?> <?= $H ?>" class="w-full h-auto" role="img" aria-label="<?= e(t("tr_by_sem")) ?>">
+                    <?php foreach ([0, 1, 2, 3, 4] as $v): ?>
+                        <line x1="<?= $L ?>" x2="<?= $W - $R ?>" y1="<?= $y($v) ?>" y2="<?= $y($v) ?>" stroke="#e2e8f0" stroke-width="1"/>
+                        <text x="<?= $L - 8 ?>" y="<?= $y($v) + 4 ?>" font-size="11" fill="#64748b" text-anchor="end"><?= $v ?>.0</text>
+                    <?php endforeach; ?>
+                    <line x1="<?= $L ?>" x2="<?= $W - $R ?>" y1="<?= $y($goal) ?>" y2="<?= $y($goal) ?>" stroke="#b91c1c" stroke-width="1.5" stroke-dasharray="6 4"/>
+                    <text x="<?= $W - $R ?>" y="<?= $y($goal) - 5 ?>" font-size="11" fill="#b91c1c" text-anchor="end">★ <?= e($goal_name) ?> <?= number_format($goal, 2) ?></text>
+                    <polyline points="<?= implode(" ", $line) ?>" fill="none" stroke="#2563eb" stroke-width="2" stroke-linejoin="round"/>
+                    <?php foreach ($points as $i => $p): $px = round($x($i), 1); $py = round($y($p["gpa"]), 1); ?>
+                        <g>
+                            <title><?= $p["grade"] ?> <?= e(t("tr_class")) ?>, <?= $p["sem"] ?> <?= e(t("tr_sem")) ?><?= $p["forecast"] ? " (" . e(t("tr_forecast")) . ")" : "" ?>: GPA <?= number_format($p["gpa"], 2) ?> · <?= $p["n"] ?> <?= e(t("subjects")) ?></title>
+                            <circle cx="<?= $px ?>" cy="<?= $py ?>" r="12" fill="transparent"/>
+                            <circle cx="<?= $px ?>" cy="<?= $py ?>" r="5" fill="<?= $p["forecast"] ? "#fff" : "#2563eb" ?>" stroke="#2563eb" stroke-width="2"/>
+                        </g>
+                        <text x="<?= $px ?>" y="<?= $H - $B + 18 ?>" font-size="11" fill="#334155" text-anchor="middle"><?= $sem_label($p["grade"], $p["sem"]) ?><?= $p["forecast"] ? "*" : "" ?></text>
+                        <text x="<?= $px ?>" y="<?= $H - $B + 34 ?>" font-size="11" fill="#64748b" text-anchor="middle"><?= number_format($p["gpa"], 2) ?></text>
+                    <?php endforeach; ?>
+                </svg>
+                <p class="text-xs text-slate-500">9·1 = <?= e(t("tr_grade")) ?> 9, 1 <?= e(t("tr_sem")) ?> · * <?= e(t("tr_forecast")) ?> (○)</p>
+            <?php endif; ?>
+        </section>
+    </div>
+
+    <?php if ($points): ?>
+    <section class="<?= $card ?> mb-6 overflow-x-auto">
+        <h3 class="font-bold text-lg mb-3"><?= e(t("tr_by_subject")) ?></h3>
+        <table class="text-sm min-w-full">
+            <thead><tr class="text-slate-500 border-b">
+                <th class="text-left py-2 pr-3"><?= e(t("subject")) ?></th>
+                <?php foreach ($points as $p): ?><th class="py-2 px-1 text-center whitespace-nowrap"><?= $sem_label($p["grade"], $p["sem"]) ?><?= $p["forecast"] ? "*" : "" ?></th><?php endforeach; ?>
+                <th class="py-2 pl-3 text-left"><?= e(t("tr_trend")) ?></th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($names as $key => $name):
+                $row = array_map(fn($p) => $sems[$p["key"]]["marks"][$key] ?? null, $points);
+                if (!array_filter($row)) continue;
+                $vals = array_values(array_filter($row, fn($v) => $v !== null)); ?>
+                <tr class="border-b last:border-b-0">
+                    <td class="py-1.5 pr-3 font-medium whitespace-nowrap"><?= e($name) ?></td>
+                    <?php foreach ($row as $m): ?>
+                        <td class="py-1.5 px-1 text-center"><?php if ($m): ?><span class="inline-block w-7 py-0.5 rounded font-semibold <?= $mark_class($m) ?>"><?= $m ?></span><?php else: ?><span class="text-slate-300">–</span><?php endif; ?></td>
+                    <?php endforeach; ?>
+                    <td class="py-1.5 pl-3">
+                        <?php if (count($vals) > 1): $sw = 110; $sh = 28; $cnt = count($vals); ?>
+                            <svg viewBox="0 0 <?= $sw ?> <?= $sh ?>" width="<?= $sw ?>" height="<?= $sh ?>" role="img" aria-label="<?= e($name) ?>: <?= implode(", ", $vals) ?>">
+                                <polyline fill="none" stroke="#2563eb" stroke-width="2" stroke-linejoin="round" points="<?= implode(" ", array_map(fn($i, $v) => round(4 + $i * ($sw - 8) / ($cnt - 1), 1) . "," . round(4 + (7 - $v) / 6 * ($sh - 8), 1), array_keys($vals), $vals)) ?>"/>
+                                <circle cx="<?= $sw - 4 ?>" cy="<?= round(4 + (7 - end($vals)) / 6 * ($sh - 8), 1) ?>" r="3" fill="#2563eb"/>
+                            </svg>
+                        <?php else: ?><span class="text-slate-300">—</span><?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </section>
+    <?php endif; ?>
+
+    <section class="<?= $card ?>" id="enter">
+        <h3 class="font-bold text-lg mb-3"><?= e(t("tr_enter")) ?></h3>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <?php foreach (TRANSCRIPT_GRADES as $g): foreach ([1, 2] as $s2): $has = isset($sems[$g . "-" . $s2]) && empty($sems[$g . "-" . $s2]["forecast"]); ?>
+                <a href="?tab=transcript&g=<?= $g ?>&s=<?= $s2 ?>#enter" class="px-3 py-1 rounded-full border text-sm <?= $g === $eg && $s2 === $es ? "bg-slate-900 text-white border-slate-900" : ($has ? "bg-green-50 border-green-300" : "bg-white") ?>"><?= $sem_label($g, $s2) ?><?= $has ? " ✓" : "" ?></a>
+            <?php endforeach; endforeach; ?>
+        </div>
+        <form method="POST">
+            <?= csrf_field() ?><input type="hidden" name="act" value="tr_save"><input type="hidden" name="grade_level" value="<?= $eg ?>"><input type="hidden" name="semester" value="<?= $es ?>">
+            <div class="font-semibold mb-2"><?= $eg ?> <?= e(t("tr_class")) ?>, <?= $es ?> <?= e(t("tr_sem")) ?></div>
+            <div class="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+                <?php $i = 0; foreach ($form_rows as $key => $name): ?>
+                    <label class="flex items-center gap-2 py-1 border-b">
+                        <input type="hidden" name="subj[<?= $i ?>]" value="<?= e($name) ?>">
+                        <span class="flex-1 min-w-0"><?= e($name) ?></span>
+                        <input type="number" name="mark[<?= $i ?>]" min="1" max="7" value="<?= isset($entered[$key]) ? (int)$entered[$key]["mark"] : "" ?>" class="border rounded-lg px-2 py-1 w-16 text-center" aria-label="<?= e($name) ?>: <?= e(t("tr_mark")) ?>">
+                    </label>
+                <?php $i++; endforeach; ?>
+                <?php for ($j = 0; $j < 3; $j++): ?>
+                    <div class="flex items-center gap-2 py-1 border-b">
+                        <input name="subj[<?= $i ?>]" maxlength="100" placeholder="<?= e(t("tr_other")) ?>" class="border rounded-lg px-2 py-1 flex-1 min-w-0">
+                        <input type="number" name="mark[<?= $i ?>]" min="1" max="7" class="border rounded-lg px-2 py-1 w-16 text-center" aria-label="<?= e(t("tr_mark")) ?>">
+                    </div>
+                <?php $i++; endfor; ?>
+            </div>
+            <button class="<?= $btn ?> mt-4"><?= e(t("save")) ?></button>
+        </form>
+    </section>
 
 <?php
 // =================================================================
