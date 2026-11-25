@@ -1239,6 +1239,8 @@ elseif ($tab === "sat" || $tab === "imo"):
 // =================================================================
 elseif ($tab === "grades"):
 
+    merge_empty_algebra_geometry($user_id);
+
     $term = in_array($_GET["term"] ?? "", ["0", "1", "2"], true) ? (int)$_GET["term"] : ib_term_of($today);
     $subjects = $q("SELECT * FROM study_ib_subjects WHERE user_id = ? ORDER BY id", "i", $user_id);
     $subjects_by_id = array_column($subjects, null, "id");
