@@ -173,3 +173,38 @@ function nis_missing_subjects(array $names)
     }
     return $missing;
 }
+
+// IB 1–7 → US 4.0 scale (a common conversion; universities may recalculate)
+const IB_TO_GPA = [
+    7 => [4.0, "A"],
+    6 => [3.7, "A-"],
+    5 => [3.3, "B+"],
+    4 => [3.0, "B"],
+    3 => [2.0, "C"],
+    2 => [1.0, "D"],
+    1 => [0.0, "F"],
+];
+
+// Average GPA of the subjects that already have a forecast: [gpa, count, approx] or null
+function gpa_from_estimates(array $estimates)
+{
+    $points = [];
+    $approx = false;
+    foreach ($estimates as $est) {
+        if ($est) {
+            $points[] = IB_TO_GPA[$est["grade"]][0];
+            $approx = $approx || $est["approx"];
+        }
+    }
+    return $points ? [array_sum($points) / count($points), count($points), $approx] : null;
+}
+
+// Words for a GPA: [en, ru] and a colour
+function gpa_rating($gpa)
+{
+    if ($gpa >= 3.7) return [["Excellent", "Отлично"], "#16a34a"];
+    if ($gpa >= 3.3) return [["Very good", "Очень хорошо"], "#65a30d"];
+    if ($gpa >= 3.0) return [["Good", "Хорошо"], "#ca8a04"];
+    if ($gpa >= 2.0) return [["Satisfactory", "Удовлетворительно"], "#ea580c"];
+    return [["Needs work", "Есть над чем поработать"], "#dc2626"];
+}

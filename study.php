@@ -1303,11 +1303,42 @@ elseif ($tab === "grades"):
         </form>
     <?php endif; ?>
 
-    <?php if ($subjects): ?>
+    <?php if ($subjects):
+        $estimates = [];
+        foreach ($subjects as $s) {
+            $estimates[$s["id"]] = ib_estimate($per_subject[$s["id"]] ?? [], $s["boundaries"]);
+        }
+        $gpa = gpa_from_estimates($estimates);
+        [$gpa_words, $gpa_color] = gpa_rating($gpa[0] ?? 0);
+        $fill = $gpa ? $gpa[0] / 4 : 0; ?>
+    <section class="<?= $card ?> mb-6 flex flex-wrap items-center gap-6">
+        <svg viewBox="0 0 80 200" class="w-16 h-40 shrink-0" role="img" aria-label="GPA <?= $gpa ? number_format($gpa[0], 2) : "—" ?> / 4.0">
+            <defs><clipPath id="flask"><path d="M28 6 h24 v104 a34 34 0 1 1 -24 0 z"/></clipPath></defs>
+            <g clip-path="url(#flask)">
+                <rect x="0" y="0" width="80" height="200" fill="#e2e8f0"/>
+                <rect x="0" y="<?= round(6 + 192 * (1 - $fill), 1) ?>" width="80" height="200" fill="<?= $gpa_color ?>"/>
+            </g>
+            <path d="M28 6 h24 v104 a34 34 0 1 1 -24 0 z" fill="none" stroke="#334155" stroke-width="3"/>
+            <path d="M22 6 h36" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+            <?php foreach ([1, 2, 3] as $m): $y = round(6 + 192 * (1 - $m / 4)); ?><path d="M52 <?= $y ?> h-8" stroke="#334155" stroke-width="2"/><?php endforeach; ?>
+        </svg>
+        <div class="flex-1 min-w-[14rem]">
+            <div class="text-sm text-slate-500">GPA (4.0) · <?= e($term ? t("g_term" . $term) : t("g_year")) ?></div>
+            <?php if ($gpa): ?>
+                <div class="text-5xl font-bold" style="color: <?= $gpa_color ?>"><?= $gpa[2] ? "≈" : "" ?><?= number_format($gpa[0], 2) ?><span class="text-xl text-slate-400"> / 4.0</span></div>
+                <div class="text-lg font-semibold mt-1"><?= e(tl($gpa_words)) ?></div>
+                <div class="text-xs text-slate-500 mt-1"><?= e(t("g_gpa_from")) ?> <?= $gpa[1] ?> / <?= count($subjects) ?> · <?= e(t("g_gpa_hint")) ?></div>
+            <?php else: ?>
+                <div class="text-5xl font-bold text-slate-300">— <span class="text-xl">/ 4.0</span></div>
+                <div class="text-sm text-slate-500 mt-1"><?= e(t("g_gpa_empty")) ?></div>
+            <?php endif; ?>
+        </div>
+    </section>
+
     <section class="<?= $card ?> mb-6 overflow-x-auto">
         <h2 class="font-bold text-lg mb-1"><?= e(t("g_table")) ?> · <?= e($term ? t("g_term" . $term) : t("g_year")) ?></h2>
         <p class="text-xs text-slate-500 mb-3"><?= e(t("g_forecast_hint")) ?></p>
-        <table class="w-full text-sm min-w-[44rem]">
+        <table class="w-full text-sm min-w-[48rem]">
             <thead>
                 <tr class="text-left text-slate-500 border-b">
                     <th class="py-2 pr-2"><?= e(t("subject")) ?></th>
@@ -1315,13 +1346,14 @@ elseif ($tab === "grades"):
                     <th class="py-2 px-2 text-center"><?= e(t("g_works")) ?></th>
                     <th class="py-2 px-2"><?= e(t("g_next")) ?></th>
                     <th class="py-2 px-2 text-center"><?= e(t("g_forecast")) ?></th>
+                    <th class="py-2 px-2 text-center">GPA</th>
                     <th class="py-2 pl-2"></th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach ($subjects as $s):
                 $list = $per_subject[$s["id"]] ?? [];
-                $est = ib_estimate($list, $s["boundaries"]);
+                $est = $estimates[$s["id"]];
                 $next = null;
                 foreach ($list as $a) {
                     if ($a["status"] !== "graded" && !empty(IB_KINDS[$a["kind"]][0]) && $a["due_date"] && $a["due_date"] >= $today && (!$next || $a["due_date"] < $next["due_date"])) {
@@ -1342,6 +1374,7 @@ elseif ($tab === "grades"):
                             <div class="text-[11px] text-slate-500"><?= $est["total"] ?>/32<?php if ($est["to_next"] !== null): ?> · +<?= $est["to_next"] ?> <?= e(t("g_to_next")) ?><?php endif; ?></div>
                         <?php else: ?><span class="text-slate-300">—</span><?php endif; ?>
                     </td>
+                    <td class="py-2 px-2 text-center whitespace-nowrap"><?php if ($est): ?><span class="font-semibold"><?= number_format(IB_TO_GPA[$est["grade"]][0], 1) ?></span> <span class="text-xs text-slate-500"><?= IB_TO_GPA[$est["grade"]][1] ?></span><?php else: ?><span class="text-slate-300">—</span><?php endif; ?></td>
                     <td class="py-2 pl-2 text-right"><a href="?tab=grades&term=<?= $term ?>&add=<?= (int)$s["id"] ?>#add-work" class="text-blue-700 whitespace-nowrap"><?= e(t("g_add_for")) ?></a></td>
                 </tr>
             <?php endforeach; ?>
