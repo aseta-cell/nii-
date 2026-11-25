@@ -33,6 +33,7 @@ const NIS_GRADE10_SUBJECTS = [
     ["Geography", "География"],
     ["Economics", "Экономика"],
     ["Computer Science", "Информатика"],
+    ["Arts", "Искусство (Arts)"],
     ["Physical Education", "Физическая культура"],
     ["Global Perspectives and Project Work", "Глобальные перспективы и проектные работы"],
 ];
@@ -112,36 +113,49 @@ function ib_estimate(array $assessments, $boundaries)
     ];
 }
 
-// Earlier the list had Algebra and Geometry instead of Mathematics. If both are still
-// there without any works, they become one "Mathematics" subject.
-function merge_empty_algebra_geometry($user_id)
+// The school programme has no separate Algebra and Geometry, only Mathematics.
+// Subjects with those names (from the earlier list) are folded into "Mathematics";
+// their works move there, nothing is lost.
+function merge_algebra_geometry($user_id)
 {
     global $conn;
 
-    $stmt = $conn->prepare("
-        SELECT s.id, s.name, COUNT(a.id) AS works FROM study_ib_subjects s
-        LEFT JOIN study_ib_assessments a ON a.subject_id = s.id
-        WHERE s.user_id = ? AND s.name IN ('Algebra', 'Алгебра', 'Geometry', 'Геометрия', 'Mathematics', 'Математика')
-        GROUP BY s.id, s.name
-    ");
+    $stmt = $conn->prepare("SELECT id, name FROM study_ib_subjects WHERE user_id = ? AND name IN ('Algebra', 'Алгебра', 'Geometry', 'Геометрия', 'Mathematics', 'Математика') ORDER BY id");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $found = [];
-    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $r) {
-        $key = in_array($r["name"], ["Algebra", "Алгебра"], true) ? "algebra" : (in_array($r["name"], ["Geometry", "Геометрия"], true) ? "geometry" : "math");
-        $found[$key] = $r;
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+    $math = null;
+    $old = [];
+    foreach ($rows as $r) {
+        if (in_array($r["name"], ["Mathematics", "Математика"], true)) {
+            $math = $math ?? $r;
+        } else {
+            $old[] = $r;
+        }
+    }
+    if (!$old) {
+        return;
     }
 
-    if (isset($found["algebra"], $found["geometry"]) && !isset($found["math"])
-        && !$found["algebra"]["works"] && !$found["geometry"]["works"]) {
-        $name = $found["algebra"]["name"] === "Алгебра" ? "Математика" : "Mathematics";
-        $a = (int)$found["algebra"]["id"];
-        $g = (int)$found["geometry"]["id"];
+    if (!$math) {
+        // The first old subject becomes Mathematics
+        $math = array_shift($old);
+        $name = preg_match('/[А-Яа-я]/u', $math["name"]) ? "Математика" : "Mathematics";
+        $id = (int)$math["id"];
         $stmt = $conn->prepare("UPDATE study_ib_subjects SET name = ? WHERE id = ? AND user_id = ?");
-        $stmt->bind_param("sii", $name, $a, $user_id);
+        $stmt->bind_param("sii", $name, $id, $user_id);
+        $stmt->execute();
+    }
+
+    $target = (int)$math["id"];
+    foreach ($old as $r) {
+        $from = (int)$r["id"];
+        $stmt = $conn->prepare("UPDATE study_ib_assessments SET subject_id = ? WHERE subject_id = ? AND user_id = ?");
+        $stmt->bind_param("iii", $target, $from, $user_id);
         $stmt->execute();
         $stmt = $conn->prepare("DELETE FROM study_ib_subjects WHERE id = ? AND user_id = ?");
-        $stmt->bind_param("ii", $g, $user_id);
+        $stmt->bind_param("ii", $from, $user_id);
         $stmt->execute();
     }
 }

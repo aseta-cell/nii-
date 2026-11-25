@@ -473,7 +473,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $have = array_map("mb_strtolower", array_column($run("SELECT name FROM study_ib_subjects WHERE user_id = ?", "i", $user_id)->get_result()->fetch_all(MYSQLI_ASSOC), "name"));
             foreach (NIS_GRADE10_SUBJECTS as $pair) {
                 $name = tl($pair);
-                if (!in_array(mb_strtolower($name), $have, true) && !in_array(mb_strtolower($pair[0]), $have, true) && !in_array(mb_strtolower($pair[1]), $have, true)) {
+                $short = mb_strtolower(preg_replace('/\s*\(.*\)$/u', '', $pair[1]));
+                if (!in_array(mb_strtolower($name), $have, true) && !in_array(mb_strtolower($pair[0]), $have, true) && !in_array(mb_strtolower($pair[1]), $have, true) && !in_array($short, $have, true)) {
                     $run("INSERT INTO study_ib_subjects (name, level, user_id) VALUES (?, 'SL', ?)", "si", $name, $user_id);
                 }
             }
@@ -1239,7 +1240,7 @@ elseif ($tab === "sat" || $tab === "imo"):
 // =================================================================
 elseif ($tab === "grades"):
 
-    merge_empty_algebra_geometry($user_id);
+    merge_algebra_geometry($user_id);
 
     $term = in_array($_GET["term"] ?? "", ["0", "1", "2"], true) ? (int)$_GET["term"] : ib_term_of($today);
     $subjects = $q("SELECT * FROM study_ib_subjects WHERE user_id = ? ORDER BY id", "i", $user_id);
