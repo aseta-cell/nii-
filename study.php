@@ -469,6 +469,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
             break;
 
+        case "gpa_goal":
+            $goal = round(min(4, max(0, (float)str_replace(",", ".", (string)($_POST["gpa_goal"] ?? "3.9")))), 2);
+            $goal_name = study_text($_POST["gpa_goal_name"] ?? "", 60);
+            $goal_name = $goal_name !== "" ? $goal_name : "Harvard";
+            $run("UPDATE study_settings SET gpa_goal = ?, gpa_goal_name = ? WHERE user_id = ?", "dsi", $goal, $goal_name, $user_id);
+            $anchor = "&term=" . (in_array($_POST["term"] ?? "", ["0", "1", "2"], true) ? $_POST["term"] : "1");
+            break;
+
         case "ib_seed_nis":
             $names = array_column($run("SELECT name FROM study_ib_subjects WHERE user_id = ?", "i", $user_id)->get_result()->fetch_all(MYSQLI_ASSOC), "name");
             foreach (nis_missing_subjects($names) as $pair) {
@@ -1310,7 +1318,9 @@ elseif ($tab === "grades"):
         }
         $gpa = gpa_from_estimates($estimates);
         [$gpa_words, $gpa_color] = gpa_rating($gpa[0] ?? 0);
-        $fill = $gpa ? $gpa[0] / 4 : 0; ?>
+        $fill = $gpa ? $gpa[0] / 4 : 0;
+        $goal = (float)($settings_row["gpa_goal"] ?? 3.9);
+        $goal_name = (string)($settings_row["gpa_goal_name"] ?? "Harvard"); ?>
     <section class="<?= $card ?> mb-6 flex flex-wrap items-center gap-6">
         <svg viewBox="0 0 80 200" class="w-16 h-40 shrink-0" role="img" aria-label="GPA <?= $gpa ? number_format($gpa[0], 2) : "—" ?> / 4.0">
             <defs><clipPath id="flask"><path d="M28 6 h24 v104 a34 34 0 1 1 -24 0 z"/></clipPath></defs>
@@ -1321,6 +1331,9 @@ elseif ($tab === "grades"):
             <path d="M28 6 h24 v104 a34 34 0 1 1 -24 0 z" fill="none" stroke="#334155" stroke-width="3"/>
             <path d="M22 6 h36" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
             <?php foreach ([1, 2, 3] as $m): $y = round(6 + 192 * (1 - $m / 4)); ?><path d="M52 <?= $y ?> h-8" stroke="#334155" stroke-width="2"/><?php endforeach; ?>
+            <?php $goal_y = round(6 + 192 * (1 - $goal / 4), 1); ?>
+            <path d="M14 <?= $goal_y ?> H66" stroke="#b91c1c" stroke-width="3" stroke-dasharray="5 3"/>
+            <text x="68" y="<?= $goal_y + 4 ?>" font-size="12" fill="#b91c1c" font-weight="bold">★</text>
         </svg>
         <div class="flex-1 min-w-[14rem]">
             <div class="text-sm text-slate-500">GPA (4.0) · <?= e($term ? t("g_term" . $term) : t("g_year")) ?></div>
@@ -1332,6 +1345,26 @@ elseif ($tab === "grades"):
                 <div class="text-5xl font-bold text-slate-300">— <span class="text-xl">/ 4.0</span></div>
                 <div class="text-sm text-slate-500 mt-1"><?= e(t("g_gpa_empty")) ?></div>
             <?php endif; ?>
+        </div>
+        <div class="w-full lg:w-80 rounded-xl border-2 border-red-200 bg-red-50 p-4">
+            <div class="text-sm text-red-800 font-semibold">★ <?= e(t("g_goal")) ?>: <?= e($goal_name) ?> · GPA <?= number_format($goal, 2) ?>+</div>
+            <?php if ($gpa): $gap = round($goal - $gpa[0], 2); ?>
+                <div class="text-2xl font-bold mt-1 <?= $gap <= 0 ? "text-green-700" : "text-red-800" ?>">
+                    <?= $gap <= 0 ? "✓ " . e(t("g_goal_ok")) : "+" . number_format($gap, 2) . " " . e(t("g_goal_left")) ?>
+                </div>
+            <?php endif; ?>
+            <?php if (preg_match('/harvard|гарвард/iu', $goal_name)): ?>
+                <p class="text-xs text-red-900/80 mt-2"><?= e(t("g_harvard_note")) ?></p>
+            <?php endif; ?>
+            <details class="mt-2 text-sm">
+                <summary class="cursor-pointer text-red-800"><?= e(t("g_goal_change")) ?></summary>
+                <form method="POST" class="flex flex-wrap gap-2 mt-2">
+                    <?= csrf_field() ?><input type="hidden" name="act" value="gpa_goal"><input type="hidden" name="term" value="<?= $term ?>">
+                    <input name="gpa_goal_name" value="<?= e($goal_name) ?>" maxlength="60" class="border rounded-lg px-2 py-1 flex-1 min-w-0" aria-label="<?= e(t("g_goal")) ?>">
+                    <input name="gpa_goal" type="number" step="0.01" min="0" max="4" value="<?= number_format($goal, 2) ?>" class="border rounded-lg px-2 py-1 w-20" aria-label="GPA">
+                    <button class="bg-red-800 text-white px-3 py-1 rounded-lg"><?= e(t("save")) ?></button>
+                </form>
+            </details>
         </div>
     </section>
 

@@ -15,6 +15,11 @@ function ensure_grades_columns()
     if ($has && $has->num_rows === 0) {
         $conn->query("ALTER TABLE study_ib_assessments ADD COLUMN term TINYINT NULL AFTER due_date");
     }
+    // Dream university and the GPA to aim for
+    $has = $conn->query("SHOW COLUMNS FROM study_settings LIKE 'gpa_goal'");
+    if ($has && $has->num_rows === 0) {
+        $conn->query("ALTER TABLE study_settings ADD COLUMN gpa_goal DECIMAL(3,2) NOT NULL DEFAULT 3.90, ADD COLUMN gpa_goal_name VARCHAR(60) NOT NULL DEFAULT 'Harvard'");
+    }
 }
 
 ensure_grades_columns();
