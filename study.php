@@ -470,13 +470,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             break;
 
         case "ib_seed_nis":
-            $have = array_map("mb_strtolower", array_column($run("SELECT name FROM study_ib_subjects WHERE user_id = ?", "i", $user_id)->get_result()->fetch_all(MYSQLI_ASSOC), "name"));
-            foreach (NIS_GRADE10_SUBJECTS as $pair) {
+            $names = array_column($run("SELECT name FROM study_ib_subjects WHERE user_id = ?", "i", $user_id)->get_result()->fetch_all(MYSQLI_ASSOC), "name");
+            foreach (nis_missing_subjects($names) as $pair) {
                 $name = tl($pair);
-                $short = mb_strtolower(preg_replace('/\s*\(.*\)$/u', '', $pair[1]));
-                if (!in_array(mb_strtolower($name), $have, true) && !in_array(mb_strtolower($pair[0]), $have, true) && !in_array(mb_strtolower($pair[1]), $have, true) && !in_array($short, $have, true)) {
-                    $run("INSERT INTO study_ib_subjects (name, level, user_id) VALUES (?, 'SL', ?)", "si", $name, $user_id);
-                }
+                $run("INSERT INTO study_ib_subjects (name, level, user_id) VALUES (?, 'SL', ?)", "si", $name, $user_id);
             }
             break;
 
@@ -1297,11 +1294,12 @@ elseif ($tab === "grades"):
         <?php endforeach; ?>
     </div>
 
-    <?php if (count($subjects) < count(NIS_GRADE10_SUBJECTS)): ?>
+    <?php $missing_nis = nis_missing_subjects(array_column($subjects, "name")); if ($missing_nis): ?>
         <form method="POST" class="<?= $card ?> mb-6 flex flex-wrap items-center gap-3">
             <?= csrf_field() ?><input type="hidden" name="act" value="ib_seed_nis">
             <button class="<?= $btn ?>">📚 <?= e(t("g_add_nis")) ?></button>
-            <span class="text-sm text-slate-500"><?= e(t("g_add_nis_hint")) ?></span>
+            <span class="text-sm text-slate-600"><?= e(t("g_missing")) ?>: <?= e(implode(", ", array_map("tl", $missing_nis))) ?></span>
+            <span class="text-sm text-slate-500 w-full"><?= e(t("g_add_nis_hint")) ?></span>
         </form>
     <?php endif; ?>
 

@@ -159,3 +159,17 @@ function merge_algebra_geometry($user_id)
         $stmt->execute();
     }
 }
+
+// Subjects of the grade-10 list that the user does not have yet (in EN or RU, any case)
+function nis_missing_subjects(array $names)
+{
+    $have = array_map(fn($n) => mb_strtolower(trim($n)), $names);
+    $missing = [];
+    foreach (NIS_GRADE10_SUBJECTS as $pair) {
+        $variants = [mb_strtolower($pair[0]), mb_strtolower($pair[1]), mb_strtolower(preg_replace('/\s*\(.*\)$/u', '', $pair[1]))];
+        if (!array_intersect($variants, $have)) {
+            $missing[] = $pair;
+        }
+    }
+    return $missing;
+}

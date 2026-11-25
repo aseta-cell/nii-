@@ -316,6 +316,7 @@ const STUDY_TEXT = [
     "g_upcoming" => ["Upcoming summatives", "Ближайшие суммативки"],
     "g_add_nis" => ["Add the subjects of grade 10 (NIS, IB track)", "Добавить предметы 10 класса (НИШ, IB)"],
     "g_add_nis_hint" => ["You can rename or delete any of them later, and add your own below.", "Любой предмет потом можно переименовать или удалить, а свой — добавить ниже."],
+    "g_missing" => ["Will be added", "Будут добавлены"],
     "g_edit_subjects" => ["Edit subjects and grade boundaries", "Изменить предметы и границы оценок"],
     "g_add_for" => ["+ work", "+ работа"],
     "g_partial_ok" => ["Fill in only the criteria this work assesses; the others can stay empty.", "Заполняйте только те критерии, которые оценивает эта работа; остальные можно оставить пустыми."],
