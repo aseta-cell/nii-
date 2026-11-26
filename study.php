@@ -23,6 +23,11 @@ require_once "transcript_lib.php";
 
 $tabs = ["overview", "planner", "tracker", "sat", "satcourse", "satbank", "imo", "grades", "transcript", "corrections", "health"];
 $tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
+
+// The SAT course is entirely in English, like the SAT itself
+if ($tab === "satcourse") {
+    $study_lang = "en";
+}
 $today = date("Y-m-d");
 
 function study_head($title)
@@ -157,7 +162,7 @@ function render_course_item(array $it, $row, $lesson_id, $n)
                         <?php if (!empty($it["opts"])): ?>
                             <div class="grid sm:grid-cols-2 gap-2">
                                 <?php foreach ($it["opts"] as $i => $o): $letter = "ABCD"[$i]; ?>
-                                    <button name="answer" value="<?= $letter ?>" class="text-left px-3 py-2 rounded-lg border hover:bg-slate-50 <?= ($row["my_answer"] ?? "") === $letter ? "border-red-400 bg-red-50" : "" ?>"><b><?= $letter ?>)</b> <?= e($o === "" ? "(ничего / no change)" : $o) ?></button>
+                                    <button name="answer" value="<?= $letter ?>" class="text-left px-3 py-2 rounded-lg border hover:bg-slate-50 <?= ($row["my_answer"] ?? "") === $letter ? "border-red-400 bg-red-50" : "" ?>"><b><?= $letter ?>)</b> <?= e($o === "" ? "(no punctuation)" : $o) ?></button>
                                 <?php endforeach; ?>
                             </div>
                         <?php else: ?>
@@ -175,7 +180,7 @@ function render_course_item(array $it, $row, $lesson_id, $n)
                 <?php else: ?>
                     <div class="mt-3 rounded-lg p-3 text-sm <?= $status === "correct" ? "bg-green-50" : "bg-amber-50" ?>">
                         <div class="font-semibold <?= $status === "correct" ? "text-green-800" : "text-amber-800" ?>">
-                            <?= $status === "correct" ? "✓ " . e(t("right")) : e(t("revealed")) ?> · <?= e(t("correct_answer")) ?>: <?= e($it["a"]) ?><?php if (!empty($it["opts"])): ?>) <?= e($it["opts"][strpos("ABCD", $it["a"])] ?: "(ничего)") ?><?php endif; ?>
+                            <?= $status === "correct" ? "✓ " . e(t("right")) : e(t("revealed")) ?> · <?= e(t("correct_answer")) ?>: <?= e($it["a"]) ?><?php if (!empty($it["opts"])): ?>) <?= e($it["opts"][strpos("ABCD", $it["a"])] ?: "(no punctuation)") ?><?php endif; ?>
                         </div>
                         <?php if ($it["why"] !== ""): ?><div class="mt-1 whitespace-pre-line text-slate-700"><?= e($it["why"]) ?></div><?php endif; ?>
                     </div>
@@ -760,7 +765,7 @@ study_head(t("hub") . " · " . $site_name);
 
     <div class="flex flex-wrap justify-between items-center gap-3">
         <a href="dashboard.php" class="text-blue-700 hover:underline">← <?= e(t("back")) ?></a>
-        <div class="flex gap-2 text-sm"><?php lang_switch(); ?></div>
+        <div class="flex gap-2 text-sm"><?php if ($tab !== "satcourse") { lang_switch(); } ?></div>
     </div>
 
     <?php $cover = cover_background($settings_row); $cover_flash = $_SESSION["cover_flash"] ?? null; unset($_SESSION["cover_flash"]); ?>
@@ -1963,7 +1968,7 @@ elseif ($tab === "satcourse"):
         <?php foreach ($step["items"] as $i => $key): $it = course_item($key); $g = $given[$key] ?? ""; $ok = $g !== "" && sat_check_answer($g, $it["a"]); ?>
             <div class="bg-white rounded-lg border border-l-4 <?= $ok ? "border-l-green-600" : "border-l-red-600" ?> p-4">
                 <div class="whitespace-pre-line"><span class="text-slate-400"><?= $i + 1 ?>.</span> <?= e($it["q"]) ?></div>
-                <?php if (!empty($it["opts"])): ?><div class="text-sm text-slate-600 mt-1"><?php foreach ($it["opts"] as $j => $o): ?><span class="mr-3"><b><?= "ABCD"[$j] ?>)</b> <?= e($o === "" ? "(ничего)" : $o) ?></span><?php endforeach; ?></div><?php endif; ?>
+                <?php if (!empty($it["opts"])): ?><div class="text-sm text-slate-600 mt-1"><?php foreach ($it["opts"] as $j => $o): ?><span class="mr-3"><b><?= "ABCD"[$j] ?>)</b> <?= e($o === "" ? "(no punctuation)" : $o) ?></span><?php endforeach; ?></div><?php endif; ?>
                 <div class="text-sm mt-2"><?= $ok ? "✓" : "✗" ?> <?= e(t("c_your")) ?>: <b><?= $g === "" ? e(t("c_no_answer")) : e($g) ?></b> · <?= e(t("correct_answer")) ?>: <b><?= e($it["a"]) ?></b></div>
                 <?php if (!$ok && $it["why"] !== ""): ?><div class="text-sm text-slate-700 mt-1 bg-slate-50 rounded p-2"><?= e($it["why"]) ?></div><?php endif; ?>
             </div>
@@ -1979,7 +1984,7 @@ elseif ($tab === "satcourse"):
                     <?php if (!empty($it["opts"])): ?>
                         <div class="grid sm:grid-cols-2 gap-2 mt-3">
                             <?php foreach ($it["opts"] as $j => $o): ?>
-                                <label class="flex gap-2 items-start px-3 py-2 rounded-lg border cursor-pointer has-[:checked]:bg-slate-900 has-[:checked]:text-white"><input type="radio" name="ans[<?= e($key) ?>]" value="<?= "ABCD"[$j] ?>" class="mt-1"> <span><b><?= "ABCD"[$j] ?>)</b> <?= e($o === "" ? "(ничего / no change)" : $o) ?></span></label>
+                                <label class="flex gap-2 items-start px-3 py-2 rounded-lg border cursor-pointer has-[:checked]:bg-slate-900 has-[:checked]:text-white"><input type="radio" name="ans[<?= e($key) ?>]" value="<?= "ABCD"[$j] ?>" class="mt-1"> <span><b><?= "ABCD"[$j] ?>)</b> <?= e($o === "" ? "(no punctuation)" : $o) ?></span></label>
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
