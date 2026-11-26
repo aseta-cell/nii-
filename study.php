@@ -15,12 +15,13 @@ $me = $stmt->get_result()->fetch_assoc();
 
 require_once "study_lib.php";
 require_once "sat_bank_lib.php";
+require_once "sat_course_lib.php";
 require_once "health_lib.php";
 require_once "cover_lib.php";
 require_once "grades_lib.php";
 require_once "transcript_lib.php";
 
-$tabs = ["overview", "planner", "tracker", "sat", "satbank", "imo", "grades", "transcript", "corrections", "health"];
+$tabs = ["overview", "planner", "tracker", "sat", "satcourse", "satbank", "imo", "grades", "transcript", "corrections", "health"];
 $tab = in_array($_GET["tab"] ?? "", $tabs, true) ? $_GET["tab"] : "overview";
 $today = date("Y-m-d");
 
@@ -137,6 +138,54 @@ function render_bank_card(array $t, $p, $just_added = false)
     <?php
 }
 
+// One task of the SAT course (lesson practice or task-book warm-up)
+function render_course_item(array $it, $row, $lesson_id, $n)
+{
+    $status = $row["status"] ?? "";
+    $border = ["correct" => "border-l-green-600", "wrong" => "border-l-red-600", "revealed" => "border-l-amber-500"][$status] ?? "border-l-slate-300";
+    $id = "ci-" . preg_replace('/[^a-z0-9-]/', '', $it["key"]);
+    $hidden = '<input type="hidden" name="key" value="' . e($it["key"]) . '"><input type="hidden" name="lesson" value="' . e($lesson_id) . '">';
+    ?>
+    <div id="<?= $id ?>" class="course-card bg-white rounded-lg border border-l-4 <?= $border ?> p-4">
+        <div class="flex gap-3">
+            <span class="text-sm text-slate-400 shrink-0 w-6"><?= (int)$n ?>.</span>
+            <div class="flex-1 min-w-0">
+                <div class="whitespace-pre-line"><?= e($it["q"]) ?></div>
+                <?php if ($status !== "correct" && $status !== "revealed"): ?>
+                    <form method="POST" class="js-course mt-3">
+                        <?= csrf_field() ?><input type="hidden" name="act" value="course_check"><?= $hidden ?>
+                        <?php if (!empty($it["opts"])): ?>
+                            <div class="grid sm:grid-cols-2 gap-2">
+                                <?php foreach ($it["opts"] as $i => $o): $letter = "ABCD"[$i]; ?>
+                                    <button name="answer" value="<?= $letter ?>" class="text-left px-3 py-2 rounded-lg border hover:bg-slate-50 <?= ($row["my_answer"] ?? "") === $letter ? "border-red-400 bg-red-50" : "" ?>"><b><?= $letter ?>)</b> <?= e($o === "" ? "(ничего / no change)" : $o) ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="flex gap-2">
+                                <input name="answer" required maxlength="100" autocomplete="off" placeholder="<?= e(t("your_answer")) ?>" class="border rounded-lg px-3 py-2 flex-1 min-w-0">
+                                <button class="bg-slate-900 text-white px-4 py-2 rounded-lg"><?= e(t("check")) ?></button>
+                            </div>
+                        <?php endif; ?>
+                    </form>
+                    <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                        <?php if ($status === "wrong"): ?><span class="text-red-700 font-semibold">✗ <?= e(t("wrong")) ?> (<?= e($row["my_answer"]) ?>) — <?= e(t("try_again")) ?></span><?php endif; ?>
+                        <form method="POST" class="js-course"><?= csrf_field() ?><input type="hidden" name="act" value="course_reveal"><?= $hidden ?>
+                            <button class="text-slate-500 underline"><?= e(t("show_solution")) ?></button></form>
+                    </div>
+                <?php else: ?>
+                    <div class="mt-3 rounded-lg p-3 text-sm <?= $status === "correct" ? "bg-green-50" : "bg-amber-50" ?>">
+                        <div class="font-semibold <?= $status === "correct" ? "text-green-800" : "text-amber-800" ?>">
+                            <?= $status === "correct" ? "✓ " . e(t("right")) : e(t("revealed")) ?> · <?= e(t("correct_answer")) ?>: <?= e($it["a"]) ?><?php if (!empty($it["opts"])): ?>) <?= e($it["opts"][strpos("ABCD", $it["a"])] ?: "(ничего)") ?><?php endif; ?>
+                        </div>
+                        <?php if ($it["why"] !== ""): ?><div class="mt-1 whitespace-pre-line text-slate-700"><?= e($it["why"]) ?></div><?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
 // Short module title from the book's section names
 function bank_module_title($sections)
 {
@@ -166,6 +215,82 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt->execute();
         return $stmt;
     };
+
+    // ----- SAT course: answers by fetch() (JSON back), tests -----
+    if ($act === "course_check" || $act === "course_reveal") {
+        $key = (string)($_POST["key"] ?? "");
+        $lesson = course_lesson((string)($_POST["lesson"] ?? ""));
+        $item = course_item($key);
+        $ajax = ($_SERVER["HTTP_X_REQUESTED_WITH"] ?? "") === "fetch";
+        [$answers, $tests] = course_progress($user_id);
+        $step = null;
+        if ($lesson) {
+            foreach (course_state($lesson["track"], $answers, $tests) as $s) {
+                if ($s["id"] === $lesson["id"]) { $step = $s; }
+            }
+        }
+        // Only practice and warm-up tasks of an open lesson (test tasks are answered in tests)
+        $allowed = $item && $step && $step["open"] && (in_array($key, array_column($lesson["practice"], "key"), true)
+            || in_array($key, array_column(course_warmup($lesson), "key"), true));
+        if (!$allowed) {
+            http_response_code(403);
+            die(e(t("c_locked")));
+        }
+        $row = $answers[$key] ?? null;
+        if ($act === "course_check" && (!$row || $row["status"] === "wrong")) {
+            $given = study_text($_POST["answer"] ?? "", 100);
+            if ($given !== "") {
+                $status = sat_check_answer($given, $item["a"]) ? "correct" : "wrong";
+                $run("INSERT INTO study_course_answers (user_id, item_key, status, attempts, my_answer) VALUES (?, ?, ?, 1, ?)
+                      ON DUPLICATE KEY UPDATE status = VALUES(status), attempts = attempts + 1, my_answer = VALUES(my_answer)", "isss", $user_id, $key, $status, $given);
+            }
+        } elseif ($act === "course_reveal" && (!$row || $row["status"] === "wrong")) {
+            $run("INSERT INTO study_course_answers (user_id, item_key, status, attempts) VALUES (?, ?, 'revealed', 0)
+                  ON DUPLICATE KEY UPDATE status = 'revealed'", "is", $user_id, $key);
+        }
+        if ($ajax) {
+            [$answers, $tests] = course_progress($user_id);
+            $state = null;
+            foreach (course_state($lesson["track"], $answers, $tests) as $s) {
+                if ($s["id"] === $lesson["id"]) { $state = $s; }
+            }
+            $n = (int)($_POST["n"] ?? 0);
+            ob_start();
+            render_course_item($item, $answers[$key] ?? null, $lesson["id"], $n);
+            header("Content-Type: application/json; charset=UTF-8");
+            echo json_encode(["id" => "ci-" . preg_replace('/[^a-z0-9-]/', '', $key), "html" => ob_get_clean(),
+                              "answered" => $state["answered"], "correct" => $state["correct"], "total" => $state["total"], "done" => $state["done"]]);
+            exit;
+        }
+        redirect("study.php?tab=satcourse&lesson=" . $lesson["id"] . "#ci-" . preg_replace('/[^a-z0-9-]/', '', $key));
+    }
+
+    if ($act === "course_test") {
+        $test_id = (string)($_POST["test"] ?? "");
+        $track = str_starts_with($test_id, "m-") ? "math" : "english";
+        [$answers, $tests] = course_progress($user_id);
+        $step = null;
+        foreach (course_state($track, $answers, $tests) as $s) {
+            if ($s["id"] === $test_id && $s["type"] === "test") { $step = $s; }
+        }
+        if (!$step || !$step["open"]) {
+            http_response_code(403);
+            die(e(t("c_locked")));
+        }
+        $given = [];
+        $score = 0;
+        foreach ($step["items"] as $key) {
+            $g = study_text(((array)($_POST["ans"] ?? []))[$key] ?? "", 100);
+            $given[$key] = $g;
+            $score += ($g !== "" && sat_check_answer($g, course_item($key)["a"])) ? 1 : 0;
+        }
+        $total = count($step["items"]);
+        $json = json_encode($given, JSON_UNESCAPED_UNICODE);
+        $run("INSERT INTO study_course_tests (user_id, test_key, last_score, best_score, total, attempts, answers) VALUES (?, ?, ?, ?, ?, 1, ?)
+              ON DUPLICATE KEY UPDATE last_score = VALUES(last_score), best_score = GREATEST(best_score, VALUES(best_score)), total = VALUES(total), attempts = attempts + 1, answers = VALUES(answers)",
+            "isiiis", $user_id, $test_id, $score, $score, $total, $json);
+        redirect("study.php?tab=satcourse&test=" . rawurlencode($test_id));
+    }
 
     // ----- SAT task book (answers may come by fetch() and get JSON back) -----
     if (str_starts_with($act, "bank_")) {
@@ -1734,6 +1859,186 @@ elseif ($tab === "transcript"):
 
 <?php
 // =================================================================
+// SAT COURSE: lessons, unit tests, review tests
+// =================================================================
+elseif ($tab === "satcourse"):
+
+    [$answers, $tests] = course_progress($user_id);
+    $lesson_id = (string)($_GET["lesson"] ?? "");
+    $test_id = (string)($_GET["test"] ?? "");
+    $lesson = $lesson_id !== "" ? course_lesson($lesson_id) : null;
+    $track = $lesson["track"] ?? (str_starts_with($test_id, "m-") ? "math" : (str_starts_with($test_id, "e-") ? "english" : (($_GET["track"] ?? "") === "english" ? "english" : "math")));
+    $state = course_state($track, $answers, $tests);
+    $by_id = array_column($state, null, "id");
+    $test_label = function ($s) {
+        if ($s["kind"] === "unit") return t("c_test_unit") . " " . $s["unit"];
+        return t($s["kind"] === "review" ? "c_test_review" : "c_test_final") . " " . $s["from"] . "–" . $s["unit"];
+    };
+    $next_open = null;
+    foreach ($state as $s) { if ($s["open"] && !$s["done"]) { $next_open = $s; break; } }
+    $step_link = fn($s) => "?tab=satcourse&" . ($s["type"] === "lesson" ? "lesson=" : "test=") . rawurlencode($s["id"]);
+?>
+    <div class="flex flex-wrap items-center gap-2 mb-5">
+        <?php foreach (["math", "english"] as $tr): ?>
+            <a href="?tab=satcourse&track=<?= $tr ?>" class="px-4 py-2 rounded-full border <?= $track === $tr ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:bg-slate-50" ?>"><?= e(tl(course_track($tr)["title"])) ?></a>
+        <?php endforeach; ?>
+    </div>
+
+<?php if ($lesson): $step = $by_id[$lesson["id"]]; ?>
+
+    <a href="?tab=satcourse&track=<?= $track ?>" class="text-blue-700">← <?= e(t("c_back_map")) ?></a>
+    <?php if (!$step["open"]): ?>
+        <div class="<?= $card ?> mt-4">🔒 <?= e(t("c_locked")) ?></div>
+    <?php else: $warm = course_warmup($lesson); ?>
+        <div class="mt-3 mb-6">
+            <div class="text-sm text-slate-500"><?= e(t("c_unit")) ?> <?= (int)$lesson["unit"] ?> · <?= e(t("c_lesson")) ?> <?= $lesson["index"] + 1 ?> · <?= e($lesson["grade"]) ?></div>
+            <h2 class="text-3xl font-bold"><?= e($lesson["title"]) ?></h2>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6 mb-6">
+            <section class="<?= $card ?> lg:col-span-2 space-y-4">
+                <div><h3 class="font-bold text-lg mb-1"><?= e(t("c_theory")) ?></h3><p><?= e($lesson["intro"]) ?></p></div>
+                <div><h3 class="font-bold mb-1"><?= e(t("c_formulas")) ?></h3>
+                    <ul class="space-y-1"><?php foreach ($lesson["formulas"] as $f): ?><li class="bg-slate-50 rounded px-3 py-1.5 font-medium"><?= e($f) ?></li><?php endforeach; ?></ul></div>
+                <div><h3 class="font-bold mb-1"><?= e(t("c_steps")) ?></h3>
+                    <ol class="list-decimal pl-6 space-y-0.5"><?php foreach ($lesson["steps"] as $st): ?><li><?= e($st) ?></li><?php endforeach; ?></ol></div>
+                <?php if ($lesson["examples"]): ?>
+                <div><h3 class="font-bold mb-1"><?= e(t("c_examples")) ?></h3>
+                    <?php foreach ($lesson["examples"] as $ex): ?>
+                        <div class="border-l-4 border-blue-600 bg-blue-50 rounded-r px-3 py-2 mb-2"><div class="font-medium"><?= e($ex["q"]) ?></div><div class="text-slate-700">→ <?= e($ex["a"]) ?></div></div>
+                    <?php endforeach; ?></div>
+                <?php endif; ?>
+            </section>
+            <aside class="space-y-4">
+                <section class="<?= $card ?> border-amber-300 bg-amber-50">
+                    <h3 class="font-bold mb-1">⚠ <?= e(t("c_traps")) ?></h3>
+                    <ul class="list-disc pl-5 space-y-1 text-sm"><?php foreach ($lesson["traps"] as $tr2): ?><li><?= e($tr2) ?></li><?php endforeach; ?></ul>
+                </section>
+                <?php if ($lesson["tip"]): ?><section class="<?= $card ?>"><h3 class="font-bold mb-1">💡 <?= e(t("c_tip")) ?></h3><p class="text-sm"><?= e($lesson["tip"]) ?></p></section><?php endif; ?>
+                <section class="<?= $card ?>">
+                    <div class="text-sm text-slate-500"><?= e(t("c_practice")) ?></div>
+                    <div class="text-2xl font-bold"><span id="c-answered"><?= $step["answered"] ?></span> / <?= $step["total"] ?></div>
+                    <div class="h-2 bg-slate-200 rounded mt-2"><div id="c-bar" class="h-2 bg-green-600 rounded" style="width: <?= round($step["answered"] / max(1, $step["total"]) * 100) ?>%"></div></div>
+                    <div class="text-xs text-slate-500 mt-1">✓ <span id="c-correct"><?= $step["correct"] ?></span></div>
+                </section>
+            </aside>
+        </div>
+
+        <?php if ($warm): ?>
+            <h3 class="font-bold text-lg mb-2"><?= e(t("c_warmup")) ?></h3>
+            <div class="space-y-3 mb-6"><?php foreach ($warm as $i => $it) { render_course_item($it, $answers[$it["key"]] ?? null, $lesson["id"], $i + 1); } ?></div>
+        <?php endif; ?>
+
+        <h3 class="font-bold text-lg mb-2"><?= e(t("c_practice")) ?></h3>
+        <div class="space-y-3"><?php foreach ($lesson["practice"] as $i => $it) { render_course_item($it, $answers[$it["key"]] ?? null, $lesson["id"], $i + 1); } ?></div>
+
+        <?php $after = null; foreach ($state as $i2 => $s) { if ($s["id"] === $lesson["id"]) { $after = $state[$i2 + 1] ?? null; } } ?>
+        <div id="c-next" class="mt-6 text-center <?= $step["done"] ? "" : "hidden" ?>">
+            <div class="text-green-700 font-bold text-lg mb-2">🎉 <?= e(t("c_lesson_done")) ?></div>
+            <?php if ($after): ?><a href="<?= $step_link($after) ?>" class="inline-block bg-slate-900 text-white px-6 py-3 rounded-lg"><?= e(t("c_next")) ?>: <?= e($after["type"] === "lesson" ? $after["lesson"]["title"] : $test_label($after)) ?> →</a><?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+<?php elseif ($test_id !== "" && isset($by_id[$test_id]) && $by_id[$test_id]["type"] === "test"): $step = $by_id[$test_id]; $row = $step["row"]; $retake = isset($_GET["retake"]); ?>
+
+    <a href="?tab=satcourse&track=<?= $track ?>" class="text-blue-700">← <?= e(t("c_back_map")) ?></a>
+    <h2 class="text-3xl font-bold mt-3"><?= e($test_label($step)) ?></h2>
+    <p class="text-slate-600 mb-5"><?= count($step["items"]) ?> <?= e(t("c_questions")) ?> · <?= e(t("c_pass_at")) ?></p>
+
+    <?php if (!$step["open"]): ?>
+        <div class="<?= $card ?>">🔒 <?= e(t("c_locked")) ?></div>
+    <?php elseif ($row && !$retake): $given = json_decode((string)$row["answers"], true) ?: []; $passed = $row["last_score"] / max(1, $row["total"]) >= course_data()["pass_share"]; ?>
+        <section class="<?= $card ?> mb-6 <?= $passed ? "border-green-300 bg-green-50" : "border-amber-300 bg-amber-50" ?>">
+            <div class="text-sm text-slate-600"><?= e(t("c_score")) ?></div>
+            <div class="text-4xl font-bold"><?= (int)$row["last_score"] ?> / <?= (int)$row["total"] ?> <span class="text-lg text-slate-500">(<?= round($row["last_score"] / max(1, $row["total"]) * 100) ?>%)</span></div>
+            <div class="font-semibold mt-1"><?= e(t($passed ? "c_passed" : "c_failed")) ?></div>
+            <div class="text-sm text-slate-500 mt-1"><?= e(t("c_best")) ?>: <?= (int)$row["best_score"] ?> / <?= (int)$row["total"] ?></div>
+            <div class="flex flex-wrap gap-3 mt-3">
+                <a href="?tab=satcourse&test=<?= rawurlencode($test_id) ?>&retake=1" class="px-4 py-2 rounded-lg border bg-white"><?= e(t("c_retake")) ?></a>
+                <?php if ($next_open): ?><a href="<?= $step_link($next_open) ?>" class="bg-slate-900 text-white px-4 py-2 rounded-lg"><?= e(t("c_continue")) ?> →</a><?php endif; ?>
+            </div>
+        </section>
+        <h3 class="font-bold text-lg mb-2"><?= e(t("c_review_wrong")) ?></h3>
+        <div class="space-y-3">
+        <?php foreach ($step["items"] as $i => $key): $it = course_item($key); $g = $given[$key] ?? ""; $ok = $g !== "" && sat_check_answer($g, $it["a"]); ?>
+            <div class="bg-white rounded-lg border border-l-4 <?= $ok ? "border-l-green-600" : "border-l-red-600" ?> p-4">
+                <div class="whitespace-pre-line"><span class="text-slate-400"><?= $i + 1 ?>.</span> <?= e($it["q"]) ?></div>
+                <?php if (!empty($it["opts"])): ?><div class="text-sm text-slate-600 mt-1"><?php foreach ($it["opts"] as $j => $o): ?><span class="mr-3"><b><?= "ABCD"[$j] ?>)</b> <?= e($o === "" ? "(ничего)" : $o) ?></span><?php endforeach; ?></div><?php endif; ?>
+                <div class="text-sm mt-2"><?= $ok ? "✓" : "✗" ?> <?= e(t("c_your")) ?>: <b><?= $g === "" ? e(t("c_no_answer")) : e($g) ?></b> · <?= e(t("correct_answer")) ?>: <b><?= e($it["a"]) ?></b></div>
+                <?php if (!$ok && $it["why"] !== ""): ?><div class="text-sm text-slate-700 mt-1 bg-slate-50 rounded p-2"><?= e($it["why"]) ?></div><?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <form method="POST" class="space-y-3">
+            <?= csrf_field() ?><input type="hidden" name="act" value="course_test"><input type="hidden" name="test" value="<?= e($test_id) ?>">
+            <?php foreach ($step["items"] as $i => $key): $it = course_item($key); ?>
+                <fieldset class="bg-white rounded-lg border p-4">
+                    <legend class="sr-only"><?= $i + 1 ?></legend>
+                    <div class="whitespace-pre-line"><span class="text-slate-400"><?= $i + 1 ?>.</span> <?= e($it["q"]) ?></div>
+                    <?php if (!empty($it["opts"])): ?>
+                        <div class="grid sm:grid-cols-2 gap-2 mt-3">
+                            <?php foreach ($it["opts"] as $j => $o): ?>
+                                <label class="flex gap-2 items-start px-3 py-2 rounded-lg border cursor-pointer has-[:checked]:bg-slate-900 has-[:checked]:text-white"><input type="radio" name="ans[<?= e($key) ?>]" value="<?= "ABCD"[$j] ?>" class="mt-1"> <span><b><?= "ABCD"[$j] ?>)</b> <?= e($o === "" ? "(ничего / no change)" : $o) ?></span></label>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <input name="ans[<?= e($key) ?>]" maxlength="100" autocomplete="off" placeholder="<?= e(t("your_answer")) ?>" class="border rounded-lg px-3 py-2 mt-3 w-full sm:w-64">
+                    <?php endif; ?>
+                </fieldset>
+            <?php endforeach; ?>
+            <button class="<?= $btn ?> text-lg px-6 py-3"><?= e(t("c_submit")) ?></button>
+        </form>
+    <?php endif; ?>
+
+<?php else:
+    $lessons_total = count(array_filter($state, fn($s) => $s["type"] === "lesson"));
+    $lessons_done = count(array_filter($state, fn($s) => $s["type"] === "lesson" && $s["done"]));
+    $ans = array_sum(array_column(array_filter($state, fn($s) => $s["type"] === "lesson"), "answered"));
+    $cor = array_sum(array_column(array_filter($state, fn($s) => $s["type"] === "lesson"), "correct"));
+    $units = [];
+    foreach ($state as $s) { $units[$s["unit"]][] = $s; }
+    $unit_names = ["math" => [1 => ["Basics · grade 7", "База · 7 класс"], 2 => ["Algebra · grade 8", "Алгебра · 8 класс"], 3 => ["Advanced algebra and geometry · grade 9", "Сложная алгебра и геометрия · 9 класс"], 4 => ["Hardest SAT topics · grade 10", "Самые сложные темы SAT · 10 класс"]],
+                   "english" => [1 => ["Grammar and punctuation", "Грамматика и пунктуация"], 2 => ["Expression of ideas and vocabulary", "Логика текста и лексика"], 3 => ["Reading and evidence", "Чтение и доказательства"]]];
+?>
+    <h2 class="text-2xl font-bold"><?= e(t("c_title")) ?></h2>
+    <p class="text-slate-600 mt-1 mb-5"><?= e(t("c_hint")) ?></p>
+
+    <div class="grid sm:grid-cols-3 gap-4 mb-6">
+        <div class="<?= $card ?>"><div class="text-sm text-slate-500"><?= e(t("c_lessons_done")) ?></div><div class="text-3xl font-bold"><?= $lessons_done ?> / <?= $lessons_total ?></div>
+            <div class="h-2 bg-slate-200 rounded mt-2"><div class="h-2 bg-green-600 rounded" style="width: <?= round($lessons_done / max(1, $lessons_total) * 100) ?>%"></div></div></div>
+        <div class="<?= $card ?>"><div class="text-sm text-slate-500"><?= e(t("c_accuracy")) ?></div><div class="text-3xl font-bold"><?= $ans ? round($cor / $ans * 100) . "%" : "—" ?></div></div>
+        <div class="<?= $card ?> flex items-center">
+            <?php if ($next_open): ?><a href="<?= $step_link($next_open) ?>" class="w-full text-center bg-slate-900 text-white px-4 py-3 rounded-lg font-semibold"><?= e(t("c_continue")) ?>: <?= e($next_open["type"] === "lesson" ? $next_open["lesson"]["title"] : $test_label($next_open)) ?> →</a><?php else: ?><div class="text-green-700 font-bold">🏆 100%</div><?php endif; ?>
+        </div>
+    </div>
+
+    <?php foreach ($units as $u => $steps): ?>
+        <section class="mb-8">
+            <h3 class="font-bold text-lg mb-3"><?= e(t("c_unit")) ?> <?= $u ?> · <?= e(tl($unit_names[$track][$u] ?? ["", ""])) ?></h3>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <?php foreach ($steps as $s):
+                    $cls = !$s["open"] ? "bg-slate-100 text-slate-400 border-dashed" : ($s["done"] ? "bg-green-50 border-green-300" : "bg-white ring-2 ring-blue-600");
+                    if ($s["type"] === "lesson"): ?>
+                        <a href="<?= $s["open"] ? $step_link($s) : "#" ?>" class="rounded-xl border p-3 <?= $cls ?> <?= $s["open"] ? "hover:shadow" : "pointer-events-none" ?>" <?= $s["open"] ? "" : 'aria-disabled="true" title="' . e(t("c_locked")) . '"' ?>>
+                            <div class="text-xs"><?= e(t("c_lesson")) ?> <?= $s["lesson"]["index"] + 1 ?><?= !$s["open"] ? " · 🔒" : ($s["done"] ? " · ✓" : "") ?></div>
+                            <div class="font-semibold leading-snug"><?= e($s["lesson"]["title"]) ?></div>
+                            <?php if ($s["open"]): ?><div class="text-xs text-slate-500 mt-1"><?= $s["answered"] ?>/<?= $s["total"] ?> · ✓<?= $s["correct"] ?></div><?php endif; ?>
+                        </a>
+                    <?php else: $r = $s["row"]; ?>
+                        <a href="<?= $s["open"] ? $step_link($s) : "#" ?>" class="rounded-xl border-2 p-3 <?= $cls ?> <?= $s["open"] ? "hover:shadow" : "pointer-events-none" ?> sm:col-span-2 lg:col-span-5" <?= $s["open"] ? "" : 'aria-disabled="true"' ?>>
+                            <div class="font-bold">📝 <?= e($test_label($s)) ?> · <?= count($s["items"]) ?> <?= e(t("c_questions")) ?><?= !$s["open"] ? " · 🔒" : "" ?></div>
+                            <?php if ($r): ?><div class="text-sm"><?= e(t("c_best")) ?>: <?= (int)$r["best_score"] ?>/<?= (int)$r["total"] ?> <?= $s["done"] ? "✓" : "" ?></div><?php endif; ?>
+                        </a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endforeach; ?>
+<?php endif; ?>
+
+<?php
+// =================================================================
 // CORRECTIONS
 // =================================================================
 elseif ($tab === "corrections"):
@@ -1955,6 +2260,31 @@ elseif ($tab === "health"):
 </div>
 
 <script>
+// SAT course: check answers without reloading the page
+document.addEventListener("submit", async function (e) {
+    const form = e.target;
+    if (!form.classList.contains("js-course")) return;
+    e.preventDefault();
+    const data = new FormData(form);
+    if (e.submitter && e.submitter.name) data.set(e.submitter.name, e.submitter.value);
+    const card = form.closest(".course-card");
+    data.set("n", card ? (parseInt(card.querySelector("span").textContent) || 0) : 0);
+    form.querySelectorAll("button").forEach(b => b.disabled = true);
+    try {
+        const res = await fetch(location.href, { method: "POST", body: data, headers: { "X-Requested-With": "fetch" } });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        const el = document.getElementById(d.id);
+        if (el) el.outerHTML = d.html;
+        const set = (id, v) => { const x = document.getElementById(id); if (x) x.textContent = v; };
+        set("c-answered", d.answered); set("c-correct", d.correct);
+        const bar = document.getElementById("c-bar"); if (bar) bar.style.width = Math.round(d.answered / Math.max(1, d.total) * 100) + "%";
+        if (d.done) { const n = document.getElementById("c-next"); if (n) n.classList.remove("hidden"); }
+    } catch (err) {
+        form.submit();
+    }
+});
+
 // Cover: preview the chosen photo before uploading
 document.getElementById("cover-file")?.addEventListener("change", function () {
     const f = this.files && this.files[0];
