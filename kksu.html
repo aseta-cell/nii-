@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KKSU · Comfort School-University</title>
+<meta name="description" content="KKSU (Comfort School-University) — инклюзивная образовательная платформа с AI-помощником для детей с особыми образовательными потребностями. 8 ролей, курсы, Teacher Academy, Inventions и 130 функций. Скоро в App Store.">
+<link rel="icon" href="kksu-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1" rel="stylesheet">
+<style>
+  :root{--teal:#0f766e;--teal2:#14b8a6;--indigo:#4338ca;--sun:#fbbf24;--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--bg:#f8fafc;--card:#fff}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font:400 16px/1.65 Inter,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg)}
+  img{max-width:100%;display:block}
+  a{color:inherit}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+  .ms{font-family:"Material Symbols Outlined";font-weight:400;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:"liga";font-feature-settings:"liga"}
+
+  .top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;color:var(--teal)}
+  .brand img{width:34px;height:34px;border-radius:9px}
+  .top nav{display:flex;gap:18px;font-size:14px;font-weight:600}
+  .top nav a{text-decoration:none;color:var(--muted)}
+  .top nav a:hover{color:var(--teal)}
+  .back{text-decoration:none;font-size:14px;font-weight:700;color:var(--teal);white-space:nowrap}
+  @media (max-width:860px){.top nav{display:none}}
+
+  .hero{background:linear-gradient(125deg,#134e4a 0%,var(--teal) 45%,var(--indigo) 110%);color:#fff;padding:56px 0 64px}
+  .hero .wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}
+  .badge{display:inline-block;font:700 11px/1 Inter,sans-serif;letter-spacing:.14em;padding:7px 12px;border-radius:999px;background:var(--sun);color:#1f2937;text-transform:uppercase}
+  .hero h1{font:800 clamp(36px,6vw,60px)/1.05 Inter,sans-serif;margin:16px 0 10px;letter-spacing:-.01em}
+  .hero h1 span{color:#99f6e4}
+  .hero .lead{font-size:18px;opacity:.93;margin:0 0 22px;max-width:600px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+  .chip{font-size:13px;font-weight:600;padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22)}
+  .btns{display:flex;flex-wrap:wrap;gap:12px}
+  .btn{display:inline-block;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px}
+  .btn.primary{background:var(--sun);color:#111827}
+  .btn.ghost{border:1px solid rgba(255,255,255,.6);color:#fff}
+  .hero-icon{justify-self:center;text-align:center}
+  .hero-icon img{width:min(260px,70vw);border-radius:56px;box-shadow:0 24px 60px rgba(0,0,0,.35);margin:0 auto}
+  .store{display:inline-flex;align-items:center;gap:10px;margin-top:22px;background:#000;color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;line-height:1.2;text-align:left}
+  .store b{display:block;font-size:17px}
+  @media (max-width:860px){.hero .wrap{grid-template-columns:1fr}.hero-icon{order:-1}}
+
+  section.block{padding:56px 0}
+  .kicker{font:700 12px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+  h2{font:800 clamp(26px,4vw,38px)/1.15 Inter,sans-serif;margin:8px 0 14px}
+  .sub{color:var(--muted);max-width:760px;margin:0 0 28px}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+  .stat b{display:block;font-size:34px;color:var(--teal);line-height:1.1}
+  .stat span{font-size:14px;color:var(--muted)}
+  @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+  .roles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .role{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-weight:700}
+  .role{min-width:0}
+  .role .ms{font-size:26px;color:var(--teal);flex:0 0 26px;width:26px;overflow:hidden}
+  .card .ic,.incl-item .ms,.store .ms{overflow:hidden}
+  .incl-item .ms{display:block;width:28px}
+  @media (max-width:760px){.roles{grid-template-columns:repeat(2,1fr)}}
+
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+  .card .ic{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:12px;background:#ccfbf1;color:var(--teal);font-size:24px}
+  .card h3{margin:12px 0 4px;font-size:19px}
+  .card p{margin:0 0 10px;color:var(--muted);font-size:15px}
+  .card ul{margin:0;padding-left:18px;font-size:14.5px}
+  .card li{margin:3px 0}
+  @media (max-width:960px){.cards{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:620px){.cards{grid-template-columns:1fr}}
+
+  .incl{background:linear-gradient(135deg,#f0fdfa,#eef2ff);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .incl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .incl-item{background:#fff;border-radius:14px;padding:16px;border:1px solid var(--line)}
+  .incl-item .ms{font-size:28px;color:var(--indigo)}
+  .incl-item b{display:block;margin:6px 0 2px}
+  .incl-item span{font-size:14px;color:var(--muted)}
+  @media (max-width:760px){.incl-grid{grid-template-columns:1fr}}
+
+  .grp{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;padding:0 18px}
+  .grp summary{cursor:pointer;font-weight:700;padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:10px}
+  .grp summary::-webkit-details-marker{display:none}
+  .grp summary::after{content:"+";color:var(--teal);font-size:22px;line-height:1}
+  .grp[open] summary::after{content:"−"}
+  .cnt{margin-left:auto;font-size:13px;color:#fff;background:var(--teal);border-radius:999px;padding:2px 10px;align-self:center}
+  .flist{list-style:none;margin:0 0 14px;padding:0;columns:2;column-gap:28px}
+  .flist li{break-inside:avoid;padding:5px 0;border-bottom:1px dashed var(--line);font-size:14.5px;display:flex;gap:10px}
+  .flist .n{min-width:30px;color:var(--teal);font-weight:700}
+  @media (max-width:700px){.flist{columns:1}}
+
+  .status{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .step b{display:block;margin-bottom:4px}
+  .step.done{border-color:#99f6e4;background:#f0fdfa}
+  .step span{font-size:14px;color:var(--muted)}
+  @media (max-width:760px){.status{grid-template-columns:1fr}}
+
+  .cta{background:linear-gradient(120deg,var(--teal),var(--indigo));color:#fff;border-radius:22px;padding:32px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
+  .cta h2{margin:0;color:#fff}
+  .cta p{margin:6px 0 0;opacity:.9}
+  footer{padding:28px 0 40px;color:var(--muted);font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="kksu-icon.png" alt="">KKSU</a>
+    <nav>
+      <a href="#roles">Роли</a>
+      <a href="#features">Возможности</a>
+      <a href="#inclusive">Инклюзивность</a>
+      <a href="#all">Все 130 функций</a>
+      <a href="#status">Статус</a>
+    </nav>
+    <a class="back" href="about.html">← НИИ AR-AI</a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="badge">Проект НИИ AR-AI · KKSU Online</span>
+      <h1>Comfort School-<span>University</span></h1>
+      <p class="lead">Инклюзивная образовательная платформа с AI-помощником, где каждый ребёнок учится в своём темпе. Ученик, родитель и педагог — в одном приложении.<br><small style="opacity:.8">Inclusive AI-powered learning platform for students with special educational needs.</small></p>
+      <div class="chips">
+        <span class="chip">8 ролей</span><span class="chip">130 функций</span><span class="chip">AI-помощник</span><span class="chip">Конструктор курсов</span><span class="chip">iOS</span>
+      </div>
+      <div class="btns">
+        <a class="btn primary" href="#all">Все 130 функций ↓</a>
+        <a class="btn ghost" href="#features">Возможности</a>
+      </div>
+    </div>
+    <div class="hero-icon">
+      <img src="kksu-icon.png" alt="Иконка приложения KKSU · Comfort School-University">
+      <div class="store"><span class="ms" style="font-size:30px">phone_iphone</span><span>Скоро в<b>App Store</b></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><b>130</b><span>функций в приложении</span></div>
+      <div class="stat"><b>8</b><span>ролей и кабинетов</span></div>
+      <div class="stat"><b>RU</b><span>язык приложения; KZ и EN — в планах</span></div>
+      <div class="stat"><b>1</b><span>платформа для ученика, родителя и педагога</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="roles" style="padding-top:0">
+  <div class="wrap">
+    <span class="kicker">Для кого</span>
+    <h2>Восемь ролей — восемь кабинетов</h2>
+    <p class="sub">Каждый участник видит своё: ученик — уроки и задания, родитель — прогресс ребёнка, педагог — курсы и проверку работ, администратор — всю школу.</p>
+    <div class="roles"><div class="role"><span class="ms">school</span>Ученик</div><div class="role"><span class="ms">family_restroom</span>Родитель</div><div class="role"><span class="ms">person_book</span>Педагог</div><div class="role"><span class="ms">psychology</span>Психолог</div><div class="role"><span class="ms">fact_check</span>Эксперт</div><div class="role"><span class="ms">diversity_3</span>Наставник</div><div class="role"><span class="ms">handshake</span>Партнёр</div><div class="role"><span class="ms">admin_panel_settings</span>Администратор</div></div>
+  </div>
+</section>
+
+<section class="block" id="features" style="padding-top:0">
+  <div class="wrap">
+    <span class="kicker">Возможности</span>
+    <h2>Что умеет KKSU</h2>
+    <p class="sub">Главные разделы приложения. Полный список всех 130 функций — ниже.</p>
+    <div class="cards"><article class="card"><span class="ms ic">groups</span><h3>8 ролей и кабинеты</h3><p>Ученик, родитель, педагог, психолог, эксперт, наставник, партнёр и администратор — у каждого свой кабинет.</p><ul><li>Регистрация, вход, восстановление пароля</li><li>Демо-вход для каждой роли</li><li>Админ-панель и управление пользователями</li></ul></article><article class="card"><span class="ms ic">school</span><h3>Обучение ученика</h3><p>Полный учебный путь — от заявки до портфолио.</p><ul><li>Анкета поступления, онлайн-заявка, согласия родителей</li><li>Каталог программ, траектория, ИУП</li><li>Расписание, календарь, домашние задания с загрузкой фото и файлов</li><li>Оценки и отзывы, портфолио, достижения, дашборд прогресса</li></ul></article><article class="card"><span class="ms ic">accessibility_new</span><h3>Инклюзивный интерфейс</h3><p>Создано для детей с особыми образовательными потребностями.</p><ul><li>Размер текста, высокий контраст</li><li>Шрифт для дислексии, упрощённый режим</li><li>Крупные кнопки, тёмная тема</li><li>Субтитры к видео и текстовые альтернативы материалам</li></ul></article><article class="card"><span class="ms ic">smart_toy</span><h3>AI-помощник</h3><p>Объясняет сложное простыми словами — шаг за шагом.</p><ul><li>Помощник ученика и педагога</li><li>Индивидуальные задания — ученик видит их после одобрения педагога</li><li>Анализ прогресса и рекомендации учителю</li><li>Вопросы уходят во внешний AI только с согласия родителя</li></ul></article><article class="card"><span class="ms ic">video_library</span><h3>Библиотеки и тесты</h3><p>Все материалы — в одном месте.</p><ul><li>Видеоуроки с субтитрами</li><li>Методические материалы, PDF, презентации, учебники</li><li>Онлайн-тесты с автопроверкой</li><li>Конструктор тестов для педагога</li></ul></article><article class="card"><span class="ms ic">video_call</span><h3>Онлайн-занятия и связь</h3><p>Уроки вживую — прямо из приложения.</p><ul><li>Комнаты Jitsi создаются автоматически</li><li>Ссылки Zoom, Google Meet, Teams</li><li>Чат ученик — преподаватель</li><li>Уведомления и дедлайны</li></ul></article><article class="card"><span class="ms ic">edit_note</span><h3>Конструктор курсов</h3><p>Педагог сам собирает курс за несколько минут.</p><ul><li>Уроки с онлайн-занятием и добавлением в расписание</li><li>Запись урока на YouTube — смотрится в приложении</li><li>Конспект, файлы, ссылки, тест и домашнее задание</li><li>Курс для всех или для выбранных, бесплатный или платный</li></ul></article><article class="card"><span class="ms ic">workspace_premium</span><h3>KKSU Teacher Academy</h3><p>Повышение квалификации педагогов.</p><ul><li>Курсы, задания и тесты для педагогов</li><li>PDF-сертификаты</li><li>Авторские методики, апробация, экспертная оценка</li><li>Реестр результатов</li></ul></article><article class="card"><span class="ms ic">emoji_objects</span><h3>KKSU Inventions</h3><p>Изобретательство для учеников.</p><ul><li>Карточки проектов, команды, наставники</li><li>Стадии Idea → Research → Prototype → Testing → Result</li><li>Журнал экспериментов и лабораторная тетрадь</li><li>Young Inventors 30 и виртуальная выставка</li></ul></article><article class="card"><span class="ms ic">public</span><h3>Global Classroom и Future Engineers</h3><p>Международные классы и инженерия.</p><ul><li>Международные онлайн-классы и проекты</li><li>Инженерные курсы и задания</li><li>Кейсы MASHSTROY, ARAI AI, IKEN, ATA MURA</li><li>Inclusive Engineering и каталог разработок</li></ul></article><article class="card"><span class="ms ic">insights</span><h3>Impact и партнёры</h3><p>Видно, какую пользу приносит школа.</p><ul><li>Impact Dashboard с автоподсчётом</li><li>KKSU Impact Report в PDF и публичная страница</li><li>Партнёры, стажировки, конференции с сертификатами</li><li>Единая аналитика для администрации</li></ul></article><article class="card"><span class="ms ic">payments</span><h3>Оплата</h3><p>Честные и понятные правила.</p><ul><li>Регистрация и заявка — бесплатно</li><li>Курсы, программы, подписки (в iOS — через App Store)</li><li>Семейная подписка, стипендии, промокоды</li><li>Счета, чеки, история платежей, возвраты</li></ul></article><article class="card"><span class="ms ic">verified_user</span><h3>Безопасность и приватность</h3><p>Защита детей — на первом месте.</p><ul><li>Согласие родителя при регистрации ученика</li><li>Выгрузка и удаление своих данных</li><li>Жалобы, блокировка и модерация</li><li>Сервер Supabase: каждый видит только свои данные</li></ul></article></div>
+  </div>
+</section>
+
+<section class="block incl" id="inclusive">
+  <div class="wrap">
+    <span class="kicker">Инклюзивность</span>
+    <h2>Удобно каждому ребёнку</h2>
+    <p class="sub">Не один интерфейс «для всех», а настройки под потребности конкретного ученика.</p>
+    <div class="incl-grid">
+      <div class="incl-item"><span class="ms">format_size</span><b>Размер текста и контраст</b><span>Крупный шрифт и высокая контрастность для слабовидящих.</span></div>
+      <div class="incl-item"><span class="ms">font_download</span><b>Шрифт для дислексии</b><span>Буквы легче различать и читать.</span></div>
+      <div class="incl-item"><span class="ms">view_agenda</span><b>Упрощённый режим</b><span>Меньше информации на экране, понятная структура.</span></div>
+      <div class="incl-item"><span class="ms">touch_app</span><b>Крупные кнопки</b><span>Легче нажимать — меньше ошибок.</span></div>
+      <div class="incl-item"><span class="ms">closed_caption</span><b>Субтитры и текст</b><span>Видео с субтитрами, текстовые альтернативы к материалам.</span></div>
+      <div class="incl-item"><span class="ms">speed</span><b>Свой темп</b><span>Индивидуальная траектория и учебный план.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="all">
+  <div class="wrap">
+    <span class="kicker">Полный список</span>
+    <h2>Все 130 функций приложения</h2>
+    <p class="sub">Нажмите на раздел, чтобы раскрыть список. Каждая функция — рабочий экран в iOS-приложении.</p>
+    <details class="grp"><summary>Платформа, роли и кабинеты <span class="cnt">9</span></summary><ol class="flist"><li><span class="n">1</span>Главная страница KKSU Online</li><li><span class="n">2</span>Регистрация пользователей</li><li><span class="n">3</span>Вход и восстановление пароля</li><li><span class="n">4</span>Роли: ученик, родитель, педагог, психолог, эксперт, наставник, партнёр, администратор</li><li><span class="n">5</span>Личный кабинет ученика</li><li><span class="n">6</span>Кабинет родителя</li><li><span class="n">7</span>Кабинет преподавателя</li><li><span class="n">8</span>Кабинет эксперта/наставника</li><li><span class="n">9</span>Административная панель</li></ol></details>
+<details class="grp"><summary>Обучение ученика <span class="cnt">16</span></summary><ol class="flist"><li><span class="n">10</span>Профиль ученика</li><li><span class="n">11</span>Цифровая анкета первичного поступления</li><li><span class="n">12</span>Онлайн-заявка на обучение</li><li><span class="n">13</span>Система согласий родителей</li><li><span class="n">14</span>Каталог образовательных программ</li><li><span class="n">15</span>Индивидуальная образовательная траектория</li><li><span class="n">16</span>Индивидуальный учебный план</li><li><span class="n">17</span>Расписание занятий</li><li><span class="n">18</span>Календарь ученика</li><li><span class="n">19</span>Система домашних заданий</li><li><span class="n">20</span>Загрузка выполненных работ</li><li><span class="n">21</span>Оценки и обратная связь преподавателя</li><li><span class="n">22</span>Электронное портфолио ученика</li><li><span class="n">23</span>Система достижений и сертификатов</li><li><span class="n">24</span>Дашборд прогресса</li><li><span class="n">25</span>История обучения</li></ol></details>
+<details class="grp"><summary>Библиотеки и тесты <span class="cnt">6</span></summary><ol class="flist"><li><span class="n">26</span>Библиотека видеоуроков</li><li><span class="n">27</span>Библиотека методических материалов</li><li><span class="n">28</span>База PDF, презентаций, инструкций и учебников</li><li><span class="n">29</span>Онлайн-тестирование</li><li><span class="n">30</span>Автоматическая проверка тестов</li><li><span class="n">31</span>Конструктор тестов для преподавателей</li></ol></details>
+<details class="grp"><summary>Онлайн-занятия и связь <span class="cnt">5</span></summary><ol class="flist"><li><span class="n">32</span>Модуль онлайн-занятий</li><li><span class="n">33</span>Ссылки/интеграция видеоконференций</li><li><span class="n">34</span>Внутренний чат ученик–преподаватель</li><li><span class="n">35</span>Уведомления</li><li><span class="n">36</span>Система дедлайнов</li></ol></details>
+<details class="grp"><summary>KKSU Teacher Academy <span class="cnt">10</span></summary><ol class="flist"><li><span class="n">37</span>KKSU Teacher Academy</li><li><span class="n">38</span>Регистрация педагогов в Teacher Academy</li><li><span class="n">39</span>Курсы повышения квалификации</li><li><span class="n">40</span>Методическая библиотека Teacher Academy</li><li><span class="n">41</span>Задания и тестирование педагогов</li><li><span class="n">42</span>Электронные сертификаты Teacher Academy</li><li><span class="n">43</span>Каталог авторских методик KKSU</li><li><span class="n">44</span>Раздел апробации методик</li><li><span class="n">45</span>Форма экспертной оценки методик</li><li><span class="n">46</span>Реестр результатов апробации</li></ol></details>
+<details class="grp"><summary>KKSU Inventions и Young Inventors 30 <span class="cnt">13</span></summary><ol class="flist"><li><span class="n">47</span>KKSU Inventions</li><li><span class="n">48</span>Карточка изобретения/проекта</li><li><span class="n">49</span>Фото, видео, чертежи и документы проекта</li><li><span class="n">50</span>Проектные команды учеников</li><li><span class="n">51</span>Назначение наставника на проект</li><li><span class="n">52</span>Стадии проекта Idea → Research → Prototype → Testing → Result</li><li><span class="n">53</span>Журнал экспериментов</li><li><span class="n">54</span>Электронная лабораторная тетрадь</li><li><span class="n">55</span>Каталог прототипов KKSU</li><li><span class="n">56</span>Young Inventors 30</li><li><span class="n">57</span>Подача заявок в Young Inventors</li><li><span class="n">58</span>Экспертное рассмотрение проектов</li><li><span class="n">59</span>Виртуальная выставка изобретений</li></ol></details>
+<details class="grp"><summary>Global Classroom и Future Engineers <span class="cnt">13</span></summary><ol class="flist"><li><span class="n">60</span>Global Classroom</li><li><span class="n">61</span>Международные онлайн-классы</li><li><span class="n">62</span>Совместные международные проекты</li><li><span class="n">63</span>Международные преподаватели и эксперты</li><li><span class="n">64</span>Future Engineers</li><li><span class="n">65</span>Инженерные онлайн-курсы</li><li><span class="n">66</span>Виртуальные инженерные задания</li><li><span class="n">67</span>Проектные кейсы MASHSTROY</li><li><span class="n">68</span>Интеграционный раздел ARAI AI</li><li><span class="n">69</span>Проекты IKEN</li><li><span class="n">70</span>Проекты ATA MURA</li><li><span class="n">71</span>Раздел Inclusive Engineering</li><li><span class="n">72</span>Каталог инклюзивных инженерных разработок</li></ol></details>
+<details class="grp"><summary>Инклюзивность и доступность <span class="cnt">6</span></summary><ol class="flist"><li><span class="n">73</span>Адаптивный интерфейс платформы</li><li><span class="n">74</span>Размер текста, контраст и интерфейс</li><li><span class="n">75</span>Субтитры к видео</li><li><span class="n">76</span>Текстовые альтернативы материалам</li><li><span class="n">77</span>Индивидуальные настройки обучения</li><li><span class="n">78</span>Рекомендации образовательного контента</li></ol></details>
+<details class="grp"><summary>AI-помощник <span class="cnt">5</span></summary><ol class="flist"><li><span class="n">79</span>AI-помощник KKSU</li><li><span class="n">80</span>AI-помощник преподавателя</li><li><span class="n">81</span>Генерация индивидуальных заданий с проверкой педагогом</li><li><span class="n">82</span>Анализ учебного прогресса</li><li><span class="n">83</span>Рекомендации преподавателю на основе данных</li></ol></details>
+<details class="grp"><summary>Impact и отчёты <span class="cnt">9</span></summary><ol class="flist"><li><span class="n">84</span>Impact Dashboard</li><li><span class="n">85</span>Автоподсчёт учеников, занятий, проектов и результатов</li><li><span class="n">86</span>Показатели образовательного прогресса</li><li><span class="n">87</span>Показатели проектов и изобретений</li><li><span class="n">88</span>Показатели партнёрств</li><li><span class="n">89</span>Показатели международной деятельности</li><li><span class="n">90</span>Генератор KKSU Impact Report</li><li><span class="n">91</span>Impact Report в PDF</li><li><span class="n">92</span>Публичная страница Impact</li></ol></details>
+<details class="grp"><summary>Партнёры, стажировки, конференции <span class="cnt">8</span></summary><ol class="flist"><li><span class="n">93</span>Каталог партнёров KKSU</li><li><span class="n">94</span>Кабинет организации-партнёра</li><li><span class="n">95</span>Раздел стажировок</li><li><span class="n">96</span>Заявки учеников на стажировки</li><li><span class="n">97</span>Конференции и мероприятия</li><li><span class="n">98</span>Регистрация на конференции</li><li><span class="n">99</span>Электронные сертификаты участников</li><li><span class="n">100</span>Единая административная аналитика KKSU</li></ol></details>
+<details class="grp"><summary>Оплата и монетизация <span class="cnt">25</span></summary><ol class="flist"><li><span class="n">101</span>Регистрация пользователя — бесплатно</li><li><span class="n">102</span>Подача заявки в KKSU — бесплатно</li><li><span class="n">103</span>Статус ученика KKSU (enrollment) — $200</li><li><span class="n">104</span>Отдельный образовательный курс — $10–50</li><li><span class="n">105</span>Teacher Academy — платные программы</li><li><span class="n">106</span>Учитель размещает свой курс — $300</li><li><span class="n">107</span>Платная сертификация преподавателя</li><li><span class="n">108</span>Future Engineers — бесплатные и платные программы</li><li><span class="n">109</span>Global Classroom — платные международные программы</li><li><span class="n">110</span>Young Inventors — платная регистрация</li><li><span class="n">111</span>KKSU Inventions — платные услуги</li><li><span class="n">112</span>Конференции — регистрационный взнос</li><li><span class="n">113</span>Teacher Marketplace</li><li><span class="n">114</span>KKSU Marketplace — каталог платных продуктов</li><li><span class="n">115</span>Подписка KKSU — месяц / год</li><li><span class="n">116</span>Семейная подписка — несколько детей</li><li><span class="n">117</span>Промокоды и скидки</li><li><span class="n">118</span>Стипендия / бесплатный доступ от администратора</li><li><span class="n">119</span>История платежей пользователя</li><li><span class="n">120</span>Инвойсы, чеки и статусы оплаты</li><li><span class="n">121</span>Панель администратора по выручке</li><li><span class="n">122</span>Продажи по курсам, преподавателям и программам</li><li><span class="n">123</span>Возвраты и отмены</li><li><span class="n">124</span>Автооткрытие курса после подтверждённой оплаты</li><li><span class="n">125</span>Блокировка платного контента до оплаты</li></ol></details>
+<details class="grp"><summary>Конструктор курсов для педагога <span class="cnt">5</span></summary><ol class="flist"><li><span class="n">126</span>Конструктор курсов и уроков для педагога</li><li><span class="n">127</span>Онлайн-урок по ссылке (Jitsi, Zoom, Meet, Teams) с добавлением в расписание</li><li><span class="n">128</span>Запись урока на YouTube — просмотр в приложении</li><li><span class="n">129</span>Конспект урока текстом, файлы и полезные ссылки</li><li><span class="n">130</span>Прохождение курса учеником: прогресс, тест, ДЗ, вопрос учителю</li></ol></details>
+  </div>
+</section>
+
+<section class="block" id="status" style="padding-top:0">
+  <div class="wrap">
+    <span class="kicker">Статус</span>
+    <h2>Где проект сейчас</h2>
+    <div class="status">
+      <div class="step done"><b>✓ Приложение собрано</b><span>Все 130 функций — рабочие экраны SwiftUI для iPhone.</span></div>
+      <div class="step done"><b>✓ Сервер подключён</b><span>Общие аккаунты и синхронизация между устройствами (Supabase).</span></div>
+      <div class="step"><b>⏳ Публикация в App Store</b><span>Готовим к проверке Apple. Ссылка на скачивание появится здесь.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" style="padding-top:0">
+  <div class="wrap">
+    <div class="cta">
+      <div>
+        <h2>Хотите участвовать?</h2>
+        <p>Школы, университеты, педагоги, исследователи, разработчики и родители — пишите НИИ AR-AI.</p>
+      </div>
+      <a class="btn primary" href="about.html">Связаться с НИИ →</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>© KKSU · Comfort School-University — проект НИИ AR-AI</footer>
+</body>
+</html>
