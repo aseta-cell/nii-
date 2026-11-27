@@ -12,7 +12,7 @@
   :root{--teal:#0f766e;--teal2:#14b8a6;--indigo:#4338ca;--sun:#fbbf24;--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--bg:#f8fafc;--card:#fff}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;font:400 16px/1.65 Inter,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg)}
+  body{margin:0;font:400 1rem/1.65 Inter,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg)}
   img{max-width:100%;display:block}
   a{color:inherit}
   .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
@@ -22,55 +22,55 @@
   .top .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:12px}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;color:var(--teal)}
   .brand img{width:34px;height:34px;border-radius:9px}
-  .top nav{display:flex;gap:18px;font-size:14px;font-weight:600}
+  .top nav{display:flex;gap:18px;font-size:0.875rem;font-weight:600}
   .top nav a{text-decoration:none;color:var(--muted)}
   .top nav a:hover{color:var(--teal)}
-  .back{text-decoration:none;font-size:14px;font-weight:700;color:var(--teal);white-space:nowrap}
+  .back{text-decoration:none;font-size:0.875rem;font-weight:700;color:var(--teal);white-space:nowrap}
   @media (max-width:860px){.top nav{display:none}}
 
   .hero{background:linear-gradient(125deg,#134e4a 0%,var(--teal) 45%,var(--indigo) 110%);color:#fff;padding:56px 0 64px}
   .hero .wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}
-  .badge{display:inline-block;font:700 11px/1 Inter,sans-serif;letter-spacing:.14em;padding:7px 12px;border-radius:999px;background:var(--sun);color:#1f2937;text-transform:uppercase}
-  .hero h1{font:800 clamp(36px,6vw,60px)/1.05 Inter,sans-serif;margin:16px 0 10px;letter-spacing:-.01em}
+  .badge{display:inline-block;font:700 0.6875rem/1 Inter,sans-serif;letter-spacing:.14em;padding:7px 12px;border-radius:999px;background:var(--sun);color:#1f2937;text-transform:uppercase}
+  .hero h1{font:800 clamp(2.25rem,6vw,3.75rem)/1.05 Inter,sans-serif;margin:16px 0 10px;letter-spacing:-.01em}
   .hero h1 span{color:#99f6e4}
-  .hero .lead{font-size:18px;opacity:.93;margin:0 0 22px;max-width:600px}
+  .hero .lead{font-size:1.125rem;opacity:.93;margin:0 0 22px;max-width:600px}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
-  .chip{font-size:13px;font-weight:600;padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22)}
+  .chip{font-size:0.8125rem;font-weight:600;padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22)}
   .btns{display:flex;flex-wrap:wrap;gap:12px}
   .btn{display:inline-block;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px}
   .btn.primary{background:var(--sun);color:#111827}
   .btn.ghost{border:1px solid rgba(255,255,255,.6);color:#fff}
   .hero-icon{justify-self:center;text-align:center}
   .hero-icon img{width:min(260px,70vw);border-radius:56px;box-shadow:0 24px 60px rgba(0,0,0,.35);margin:0 auto}
-  .store{display:inline-flex;align-items:center;gap:10px;margin-top:22px;background:#000;color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;line-height:1.2;text-align:left}
-  .store b{display:block;font-size:17px}
+  .store{display:inline-flex;align-items:center;gap:10px;margin-top:22px;background:#000;color:#fff;border-radius:12px;padding:10px 16px;font-size:0.8125rem;line-height:1.2;text-align:left}
+  .store b{display:block;font-size:1.0625rem}
   @media (max-width:860px){.hero .wrap{grid-template-columns:1fr}.hero-icon{order:-1}}
 
   section.block{padding:56px 0}
-  .kicker{font:700 12px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
-  h2{font:800 clamp(26px,4vw,38px)/1.15 Inter,sans-serif;margin:8px 0 14px}
+  .kicker{font:700 0.75rem/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+  h2{font:800 clamp(1.625rem,4vw,2.375rem)/1.15 Inter,sans-serif;margin:8px 0 14px}
   .sub{color:var(--muted);max-width:760px;margin:0 0 28px}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
-  .stat b{display:block;font-size:34px;color:var(--teal);line-height:1.1}
-  .stat span{font-size:14px;color:var(--muted)}
+  .stat b{display:block;font-size:2.125rem;color:var(--teal);line-height:1.1}
+  .stat span{font-size:0.875rem;color:var(--muted)}
   @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
 
   .roles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .role{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-weight:700}
   .role{min-width:0}
-  .role .ms{font-size:26px;color:var(--teal);flex:0 0 26px;width:26px;overflow:hidden}
+  .role .ms{font-size:1.625rem;color:var(--teal);flex:0 0 26px;width:26px;overflow:hidden}
   .card .ic,.incl-item .ms,.store .ms{overflow:hidden}
   .incl-item .ms{display:block;width:28px}
   @media (max-width:760px){.roles{grid-template-columns:repeat(2,1fr)}}
 
   .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
-  .card .ic{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:12px;background:#ccfbf1;color:var(--teal);font-size:24px}
-  .card h3{margin:12px 0 4px;font-size:19px}
-  .card p{margin:0 0 10px;color:var(--muted);font-size:15px}
-  .card ul{margin:0;padding-left:18px;font-size:14.5px}
+  .card .ic{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:12px;background:#ccfbf1;color:var(--teal);font-size:1.5rem}
+  .card h3{margin:12px 0 4px;font-size:1.1875rem}
+  .card p{margin:0 0 10px;color:var(--muted);font-size:0.9375rem}
+  .card ul{margin:0;padding-left:18px;font-size:0.90625rem}
   .card li{margin:3px 0}
   @media (max-width:960px){.cards{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:620px){.cards{grid-template-columns:1fr}}
@@ -78,19 +78,19 @@
   .incl{background:linear-gradient(135deg,#f0fdfa,#eef2ff);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .incl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   .incl-item{background:#fff;border-radius:14px;padding:16px;border:1px solid var(--line)}
-  .incl-item .ms{font-size:28px;color:var(--indigo)}
+  .incl-item .ms{font-size:1.75rem;color:var(--indigo)}
   .incl-item b{display:block;margin:6px 0 2px}
-  .incl-item span{font-size:14px;color:var(--muted)}
+  .incl-item span{font-size:0.875rem;color:var(--muted)}
   @media (max-width:760px){.incl-grid{grid-template-columns:1fr}}
 
   .grp{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;padding:0 18px}
   .grp summary{cursor:pointer;font-weight:700;padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:10px}
   .grp summary::-webkit-details-marker{display:none}
-  .grp summary::after{content:"+";color:var(--teal);font-size:22px;line-height:1}
+  .grp summary::after{content:"+";color:var(--teal);font-size:1.375rem;line-height:1}
   .grp[open] summary::after{content:"−"}
-  .cnt{margin-left:auto;font-size:13px;color:#fff;background:var(--teal);border-radius:999px;padding:2px 10px;align-self:center}
+  .cnt{margin-left:auto;font-size:0.8125rem;color:#fff;background:var(--teal);border-radius:999px;padding:2px 10px;align-self:center}
   .flist{list-style:none;margin:0 0 14px;padding:0;columns:2;column-gap:28px}
-  .flist li{break-inside:avoid;padding:5px 0;border-bottom:1px dashed var(--line);font-size:14.5px;display:flex;gap:10px}
+  .flist li{break-inside:avoid;padding:5px 0;border-bottom:1px dashed var(--line);font-size:0.90625rem;display:flex;gap:10px}
   .flist .n{min-width:30px;color:var(--teal);font-weight:700}
   @media (max-width:700px){.flist{columns:1}}
 
@@ -98,14 +98,16 @@
   .step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
   .step b{display:block;margin-bottom:4px}
   .step.done{border-color:#99f6e4;background:#f0fdfa}
-  .step span{font-size:14px;color:var(--muted)}
+  .step span{font-size:0.875rem;color:var(--muted)}
   @media (max-width:760px){.status{grid-template-columns:1fr}}
 
   .cta{background:linear-gradient(120deg,var(--teal),var(--indigo));color:#fff;border-radius:22px;padding:32px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
   .cta h2{margin:0;color:#fff}
   .cta p{margin:6px 0 0;opacity:.9}
-  footer{padding:28px 0 40px;color:var(--muted);font-size:14px;text-align:center}
+  footer{padding:28px 0 40px;color:var(--muted);font-size:0.875rem;text-align:center}
 </style>
+  <link rel="stylesheet" href="kksu-accessibility.css">
+  <script src="kksu-accessibility.js" defer></script>
 </head>
 <body>
 
@@ -135,13 +137,14 @@
         <span class="chip">8 ролей</span><span class="chip">130 функций</span><span class="chip">AI-помощник</span><span class="chip">Конструктор курсов</span><span class="chip">iOS</span>
       </div>
       <div class="btns">
-        <a class="btn primary" href="#all">Все 130 функций ↓</a>
+        <a class="btn primary" href="kksu-account.php">Войти в KKSU</a>
+        <a class="btn ghost" href="#all">Все 130 функций ↓</a>
         <a class="btn ghost" href="#features">Возможности</a>
       </div>
     </div>
     <div class="hero-icon">
       <img src="kksu-icon.png" alt="Иконка приложения KKSU · Comfort School-University">
-      <div class="store"><span class="ms" style="font-size:30px">phone_iphone</span><span>Скоро в<b>App Store</b></span></div>
+      <div class="store"><span class="ms" style="font-size:1.875rem">phone_iphone</span><span>Скоро в<b>App Store</b></span></div>
     </div>
   </div>
 </section>
@@ -180,6 +183,26 @@
     <span class="kicker">Инклюзивность</span>
     <h2>Удобно каждому ребёнку</h2>
     <p class="sub">Не один интерфейс «для всех», а настройки под потребности конкретного ученика.</p>
+    <details class="grp" id="accessibility-settings" hidden>
+      <summary>Настройки доступности</summary>
+      <form class="accessibility-form" autocomplete="off">
+        <label for="text-scale">Размер текста <output for="text-scale">100%</output></label>
+        <input id="text-scale" name="scale" type="range" min="80" max="200" step="10" value="100">
+        <label for="color-theme">Тема</label>
+        <select id="color-theme" name="theme">
+          <option value="system">Как на устройстве</option>
+          <option value="light">Светлая</option>
+          <option value="dark">Тёмная</option>
+        </select>
+        <label><input type="checkbox" name="bold"> Жирный текст</label>
+        <label><input type="checkbox" name="rounded"> Скруглённый шрифт</label>
+        <label><input type="checkbox" name="contrast"> Высокий контраст</label>
+        <label><input type="checkbox" name="simple"> Упрощённый интерфейс</label>
+        <label><input type="checkbox" name="targets"> Крупные кнопки</label>
+        <label><input type="checkbox" name="motion"> Уменьшить анимацию</label>
+        <button type="reset">Сбросить настройки</button>
+      </form>
+    </details>
     <div class="incl-grid">
       <div class="incl-item"><span class="ms">format_size</span><b>Размер текста и контраст</b><span>Крупный шрифт и высокая контрастность для слабовидящих.</span></div>
       <div class="incl-item"><span class="ms">font_download</span><b>Шрифт для дислексии</b><span>Буквы легче различать и читать.</span></div>

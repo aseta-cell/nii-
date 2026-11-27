@@ -1,0 +1,235 @@
+<?php
+declare(strict_types=1);
+
+ini_set('session.use_strict_mode', '1');
+session_name('KKSU_SESSION');
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'cookie_samesite' => 'Lax',
+]);
+header('Cache-Control: no-store');
+header('Referrer-Policy: no-referrer');
+
+function kksuHtml(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function kksuRequest(string $path, ?array $body = null, ?string $token = null): array
+{
+    static $config;
+    if ($config === null) {
+        $configPath = __DIR__ . '/config.local.php';
+        $config = is_file($configPath) ? (require $configPath) : [];
+    }
+    $url = rtrim((string)($config['kksu_supabase_url'] ?? getenv('KKSU_SUPABASE_URL')), '/');
+    $key = (string)($config['kksu_supabase_publishable_key'] ?? getenv('KKSU_SUPABASE_PUBLISHABLE_KEY'));
+    if (!preg_match('~^https://[a-z0-9-]+\.supabase\.co$~D', $url)
+        || !preg_match('/^sb_publishable_[A-Za-z0-9_-]+$/D', $key)) {
+        throw new RuntimeException('KKSU пока не подключён к серверу.');
+    }
+
+    $headers = ['apikey: ' . $key, 'Accept: application/json'];
+    if ($token !== null) {
+        $headers[] = 'Authorization: Bearer ' . $token;
+    }
+    $options = [
+        'method' => $body === null ? 'GET' : 'POST',
+        'timeout' => 10,
+        'ignore_errors' => true,
+        'follow_location' => 0,
+    ];
+    if ($body !== null) {
+        $headers[] = 'Content-Type: application/json';
+        $options['content'] = json_encode($body, JSON_THROW_ON_ERROR);
+    }
+    $options['header'] = $headers;
+    $response = @file_get_contents($url . $path, false, stream_context_create(['http' => $options]));
+    $statusLine = $http_response_header[0] ?? '';
+    preg_match('/^HTTP\/\S+ (\d{3})\b/', $statusLine, $matches);
+    $status = (int)($matches[1] ?? 0);
+    $data = $response === false ? null : json_decode($response, true);
+    if ($status === 429) {
+        throw new RuntimeException('Слишком много запросов. Попробуйте позже.', $status);
+    }
+    if ($status < 200 || $status >= 300 || !is_array($data)) {
+        $message = match ($data['error_code'] ?? '') {
+            'invalid_credentials' => 'Проверьте email и пароль.',
+            'email_not_confirmed' => 'Подтвердите email через письмо от KKSU.',
+            default => 'Не удалось выполнить запрос к KKSU. Попробуйте ещё раз.',
+        };
+        throw new RuntimeException($message, $status);
+    }
+    return $data;
+}
+
+function kksuSession(array $response): array
+{
+    $id = $response['user']['id'] ?? '';
+    $access = $response['access_token'] ?? '';
+    $refresh = $response['refresh_token'] ?? '';
+    if (!preg_match('/^[a-f0-9-]{36}$/Di', $id)
+        || !preg_match('/^[A-Za-z0-9._-]+$/D', $access)
+        || !preg_match('/^[A-Za-z0-9._-]+$/D', $refresh)) {
+        throw new RuntimeException('Не удалось открыть сессию KKSU.');
+    }
+    return [
+        'id' => $id,
+        'access' => $access,
+        'refresh' => $refresh,
+        'expires' => time() + max(0, (int)($response['expires_in'] ?? 0) - 30),
+    ];
+}
+
+$csrf = $_SESSION['csrf'] ??= bin2hex(random_bytes(32));
+$auth = $_SESSION['auth'] ?? null;
+$error = '';
+$member = null;
+$memberships = [
+    'student' => 'Ученик', 'parent' => 'Родитель', 'teacher' => 'Педагог',
+    'psychologist' => 'Психолог', 'expert' => 'Эксперт', 'mentor' => 'Наставник',
+    'partner' => 'Партнёр', 'admin' => 'Администратор',
+];
+$catalogs = ['programs' => 'Учебные программы', 'library' => 'Библиотека'];
+$section = $_GET['section'] ?? 'programs';
+if (!is_string($section) || !isset($catalogs[$section])) {
+    $section = 'programs';
+}
+$page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 10000]]) ?: 1;
+$items = [];
+$hasMore = false;
+
+try {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $submittedToken = $_POST['csrf'] ?? '';
+        if (!is_string($submittedToken) || !hash_equals($csrf, $submittedToken)) {
+            http_response_code(403);
+            throw new RuntimeException('Форма устарела. Обновите страницу.');
+        }
+        $action = $_POST['action'] ?? '';
+        if ($action === 'logout') {
+            unset($_SESSION['auth']);
+        } elseif ($action === 'login' && $auth === null) {
+            $rawEmail = $_POST['email'] ?? '';
+            $password = $_POST['password'] ?? '';
+            $email = is_string($rawEmail) ? trim($rawEmail) : '';
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !is_string($password) || $password === '' || strlen($password) > 1024) {
+                throw new RuntimeException('Введите email и пароль KKSU.');
+            }
+            $_SESSION['auth'] = kksuSession(kksuRequest('/auth/v1/token?grant_type=password', [
+                'email' => $email,
+                'password' => $password,
+            ]));
+        } else {
+            http_response_code(400);
+            throw new RuntimeException('Неизвестное действие.');
+        }
+        session_regenerate_id(true);
+        unset($_SESSION['csrf']);
+        header('Location: kksu-account.php', true, 303);
+        exit;
+    }
+
+    if ($auth !== null) {
+        if ($auth['expires'] <= time()) {
+            $auth = $_SESSION['auth'] = kksuSession(kksuRequest('/auth/v1/token?grant_type=refresh_token', [
+                'refresh_token' => $auth['refresh'],
+            ]));
+        }
+        $members = kksuRequest('/rest/v1/kksu_members?select=full_name,role,blocked,approved&school_id=eq.kksu&user_id=eq.' . $auth['id'], null, $auth['access']);
+        $member = $members[0] ?? null;
+        if ($member === null || $member['blocked'] || !$member['approved'] || !isset($memberships[$member['role']])) {
+            throw new RuntimeException('Этот аккаунт пока не имеет доступа к кабинету KKSU.');
+        }
+        $query = http_build_query([
+            'select' => 'data', 'school_id' => 'eq.kksu', 'collection' => 'eq.' . $section,
+            'deleted' => 'eq.false', 'visible_to' => 'eq.{}', 'order' => 'data->>title.asc,id.asc',
+            'limit' => 21, 'offset' => ($page - 1) * 20,
+        ]);
+        $items = kksuRequest('/rest/v1/kksu_records?' . $query, null, $auth['access']);
+        $hasMore = count($items) > 20;
+        $items = array_slice($items, 0, 20);
+    }
+} catch (RuntimeException | JsonException $exception) {
+    if ($auth !== null && in_array($exception->getCode(), [400, 401], true)) {
+        unset($_SESSION['auth']);
+        $auth = null;
+        $member = null;
+    }
+    $error = $exception instanceof JsonException ? 'Не удалось отправить запрос.' : $exception->getMessage();
+}
+?>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Кабинет KKSU</title>
+  <style>
+    body { font: 1rem/1.6 system-ui, sans-serif; margin: 0; background: #f0fdfa; color: #0f172a; }
+    main { width: min(48rem, calc(100% - 2rem)); margin: 2rem auto; overflow-wrap: anywhere; }
+    a { color: #0f665f; }
+    form, article { background: white; padding: 1rem; border-radius: .75rem; margin-block: 1rem; }
+    label { display: block; margin-bottom: .75rem; }
+    input { display: block; box-sizing: border-box; width: min(100%, 28rem); padding: .5rem; font: inherit; }
+    button { font: inherit; color: white; background: #0f665f; border: 0; border-radius: .4rem; padding: .5rem 1rem; cursor: pointer; }
+    nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+    [aria-current] { font-weight: bold; }
+    [role="alert"] { color: #991b1b; }
+  </style>
+</head>
+<body><main>
+  <a href="kksu.html">← О проекте KKSU</a>
+  <h1>Кабинет KKSU</h1>
+  <?php if ($error !== ''): ?><p role="alert"><?= kksuHtml($error) ?></p><?php endif; ?>
+  <?php if ($auth === null): ?>
+    <form method="post">
+      <input type="hidden" name="csrf" value="<?= kksuHtml($csrf) ?>">
+      <input type="hidden" name="action" value="login">
+      <label>Email KKSU <input type="email" name="email" autocomplete="username" required maxlength="254"></label>
+      <label>Пароль <input type="password" name="password" autocomplete="current-password" required maxlength="1024"></label>
+      <button type="submit">Войти</button>
+    </form>
+  <?php else: ?>
+    <form method="post">
+      <input type="hidden" name="csrf" value="<?= kksuHtml($csrf) ?>">
+      <input type="hidden" name="action" value="logout">
+      <button type="submit">Выйти</button>
+    </form>
+    <?php if ($error === '' && $member !== null): ?>
+      <p><?= kksuHtml($member['full_name']) ?> · <?= kksuHtml($memberships[$member['role']]) ?></p>
+      <nav aria-label="Разделы кабинета">
+        <?php foreach ($catalogs as $key => $title): ?>
+          <a href="?section=<?= $key ?>"<?= $section === $key ? ' aria-current="page"' : '' ?>><?= kksuHtml($title) ?></a>
+        <?php endforeach; ?>
+      </nav>
+      <h2><?= kksuHtml($catalogs[$section]) ?></h2>
+      <?php if (!$items): ?><p>На этой странице пока нет материалов.</p><?php endif; ?>
+      <?php foreach ($items as $item):
+        $data = $item['data'] ?? [];
+        $link = $data['url'] ?? '';
+        ?>
+        <article>
+          <h3><?= kksuHtml((string)($data['title'] ?? '')) ?></h3>
+          <p><?= kksuHtml((string)($data['summary'] ?? '')) ?></p>
+          <?php if ($section === 'programs'): ?>
+            <p><?= kksuHtml((string)($data['ageRange'] ?? '')) ?> · Недель: <?= (int)($data['durationWeeks'] ?? 0) ?></p>
+          <?php else: ?>
+            <?php if (is_string($link) && filter_var($link, FILTER_VALIDATE_URL) && parse_url($link, PHP_URL_SCHEME) === 'https'): ?>
+              <a href="<?= kksuHtml($link) ?>" rel="noreferrer">Открыть материал</a>
+            <?php endif; ?>
+            <?php if (is_string($data['textAlternative'] ?? null) && $data['textAlternative'] !== ''): ?>
+              <details><summary>Текстовая версия</summary><p><?= nl2br(kksuHtml($data['textAlternative'])) ?></p></details>
+            <?php endif; ?>
+          <?php endif; ?>
+        </article>
+      <?php endforeach; ?>
+      <nav aria-label="Страницы каталога">
+        <?php if ($page > 1): ?><a href="?section=<?= $section ?>&amp;page=<?= $page - 1 ?>">Назад</a><?php endif; ?>
+        <?php if ($hasMore && $page < 10000): ?><a href="?section=<?= $section ?>&amp;page=<?= $page + 1 ?>">Далее</a><?php endif; ?>
+      </nav>
+    <?php endif; ?>
+  <?php endif; ?>
+</main></body>
+</html>

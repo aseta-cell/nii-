@@ -22,6 +22,10 @@ return [
     //     "institutional" => ["name" => "Institutional", "amount" => null,   "link" => "institutional.html"],
     // ],
 
+    // Use the same Supabase project as the KKSU iPhone app. Requires PHP 8+ and allow_url_fopen.
+    // "kksu_supabase_url" => "https://YOUR-PROJECT.supabase.co",
+    // "kksu_supabase_publishable_key" => "sb_publishable_...",
+
     // New special-access password (optional): put its hash here
     // "free_access_hash" => '$2y$12$...',
 
