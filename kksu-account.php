@@ -16,13 +16,13 @@ function kksuHtml(string $value): string
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function kksuDate($value): string
+function kksuDate($value, string $format = 'd.m.Y H:i'): string
 {
     if (!is_string($value) || $value === '') {
         return '';
     }
     try {
-        return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('Asia/Almaty'))->format('d.m.Y H:i');
+        return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('Asia/Almaty'))->format($format);
     } catch (Exception $exception) {
         return '';
     }
@@ -230,6 +230,15 @@ $sections = [
     'submissions' => 'Мои работы и оценки',
     'review' => 'Проверка работ',
 ];
+$progressSections = [
+    'trajectory' => ['Индивидуальная траектория', 'studentID', 'targetDate.asc'],
+    'studyPlan' => ['Учебный план', 'studentID', 'term.asc'],
+    'portfolio' => ['Портфолио', 'studentID', 'date.desc'],
+    'achievements' => ['Достижения', 'userID', 'date.desc'],
+    'certificates' => ['Сертификаты', 'userID', 'date.desc'],
+    'history' => ['История обучения', 'userID', 'date.desc'],
+];
+$sections += array_map(static fn(array $item): string => $item[0], $progressSections);
 $section = $_GET['section'] ?? 'programs';
 if (!is_string($section) || !isset($sections[$section])) {
     $section = 'programs';
@@ -316,7 +325,8 @@ try {
             exit;
         }
         if ($member['role'] !== 'student') {
-            unset($sections['assignments'], $sections['submissions']);
+            unset($sections['assignments'], $sections['submissions'], $sections['trajectory'],
+                $sections['studyPlan'], $sections['portfolio'], $sections['history']);
         }
         $section = isset($sections[$section]) ? $section : 'programs';
         $uuid = strtolower($auth['id']);
@@ -338,6 +348,14 @@ try {
             'assignments' => kksuAssignmentFilters($uuid) + ['order' => 'data->>dueDate.asc,id.asc'],
             default => ['visible_to' => 'eq.{}', 'order' => 'data->>title.asc,id.asc'],
         };
+        if (isset($progressSections[$section])) {
+            [, $profileField, $order] = $progressSections[$section];
+            $filters = [
+                'visible_to' => 'cs.{' . $uuid . '}',
+                'data->>' . $profileField => 'ilike.' . $uuid,
+                'order' => 'data->>' . $order . ',id.asc',
+            ];
+        }
         $query = http_build_query($filters + [
             'select' => 'id,data', 'school_id' => 'eq.kksu', 'collection' => 'eq.' . $section,
             'deleted' => 'eq.false', 'limit' => 21, 'offset' => ($page - 1) * 20,
@@ -469,7 +487,11 @@ try {
         $link = kksuLink($data['url'] ?? null);
         $title = $section === 'submissions'
             ? ($assignmentTitles[strtolower((string)($data['assignmentID'] ?? ''))] ?? 'Учебная работа')
-            : (string)($data['title'] ?? '');
+            : (string)match ($section) {
+                'studyPlan' => $data['subject'] ?? '',
+                'history' => $data['action'] ?? '',
+                default => $data['title'] ?? '',
+            };
         if ($reviewAssignment !== null) {
             $studentId = strtolower((string)($data['studentID'] ?? ''));
             $studentName = $students[$studentId] ?? 'Ученик';
@@ -478,6 +500,9 @@ try {
         $summary = match ($section) {
             'assignments' => $data['details'] ?? '',
             'notifications' => $data['body'] ?? '',
+            'trajectory' => $data['note'] ?? '',
+            'studyPlan' => $data['goal'] ?? '',
+            'history' => $data['details'] ?? '',
             'submissions' => $data['text'] ?? '',
             'review' => $reviewAssignment === null ? '' : ($data['text'] ?? ''),
             default => $data['summary'] ?? '',
@@ -547,6 +572,52 @@ try {
               <button type="submit" name="status" value="graded">Сохранить оценку</button>
               <button type="submit" name="status" value="returned">Вернуть на доработку</button>
             </form>
+          <?php elseif ($section === 'trajectory'):
+            $stepStatus = match ($data['status'] ?? '') {
+                'planned' => 'Запланировано',
+                'inProgress' => 'В процессе',
+                'done' => 'Завершено',
+                default => 'Статус не указан',
+            };
+            ?>
+            <p><?= $stepStatus ?> · Целевая дата <?= kksuHtml(kksuDate($data['targetDate'] ?? null, 'd.m.Y')) ?></p>
+          <?php elseif ($section === 'studyPlan'): ?>
+            <p><?= kksuHtml((string)($data['term'] ?? '')) ?> · <?= (int)($data['hoursPerWeek'] ?? 0) ?> ч в неделю</p>
+            <?php if (is_string($data['adaptation'] ?? null) && $data['adaptation'] !== ''): ?>
+              <p><strong>Адаптация программы</strong><br><?= nl2br(kksuHtml($data['adaptation'])) ?></p>
+            <?php endif; ?>
+          <?php elseif ($section === 'portfolio'): ?>
+            <p><?= kksuHtml((string)($data['category'] ?? '')) ?> · <?= kksuHtml(kksuDate($data['date'] ?? null, 'd.m.Y')) ?></p>
+            <?php foreach ((array)($data['attachments'] ?? []) as $attachment):
+                $attachmentLink = kksuLink($attachment['remoteURL'] ?? null);
+                if ($attachmentLink === null) {
+                    continue;
+                }
+                ?>
+              <p><a href="<?= kksuHtml($attachmentLink) ?>" rel="noreferrer"><?= kksuHtml((string)($attachment['fileName'] ?? 'Открыть файл')) ?></a></p>
+              <?php if (is_string($attachment['altText'] ?? null) && $attachment['altText'] !== ''): ?>
+                <p><?= nl2br(kksuHtml($attachment['altText'])) ?></p>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          <?php elseif ($section === 'achievements'): ?>
+            <p>Баллы: <?= (int)($data['points'] ?? 0) ?> · <?= kksuHtml(kksuDate($data['date'] ?? null, 'd.m.Y')) ?></p>
+          <?php elseif ($section === 'certificates'):
+            $issuer = match ($data['issuer'] ?? '') {
+                'school' => 'KKSU Online',
+                'teacherAcademy' => 'KKSU Teacher Academy',
+                'youngInventors' => 'Young Inventors 30',
+                'conference' => 'Конференции KKSU',
+                'internship' => 'Стажировки KKSU',
+                default => '',
+            };
+            ?>
+            <p><?= kksuHtml((string)($data['recipientName'] ?? '')) ?> · <?= $issuer ?> · <?= kksuHtml(kksuDate($data['date'] ?? null, 'd.m.Y')) ?></p>
+            <?php if (is_int($data['hours'] ?? null)): ?><p>Часы: <?= $data['hours'] ?></p><?php endif; ?>
+            <?php if (is_string($data['serial'] ?? null) && $data['serial'] !== ''): ?>
+              <p>Номер сертификата <code>KKSU-<?= kksuHtml($data['serial']) ?></code></p>
+            <?php endif; ?>
+          <?php elseif ($section === 'history'): ?>
+            <p><?= kksuHtml(kksuDate($data['date'] ?? null)) ?> (Алматы)</p>
           <?php elseif ($section === 'library' && $link !== null): ?>
             <a href="<?= kksuHtml($link) ?>" rel="noreferrer">Открыть материал</a>
           <?php endif; ?>
