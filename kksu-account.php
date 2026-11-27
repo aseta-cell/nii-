@@ -115,6 +115,7 @@ $sections = [
     'sessions' => 'Моё расписание',
     'notifications' => 'Уведомления',
     'assignments' => 'Задания',
+    'submissions' => 'Мои работы и оценки',
 ];
 $section = $_GET['section'] ?? 'programs';
 if (!is_string($section) || !isset($sections[$section])) {
@@ -123,6 +124,7 @@ if (!is_string($section) || !isset($sections[$section])) {
 $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 10000]]) ?: 1;
 $items = [];
 $hasMore = false;
+$assignmentTitles = [];
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -167,7 +169,7 @@ try {
             throw new RuntimeException('Этот аккаунт пока не имеет доступа к кабинету KKSU.');
         }
         if ($member['role'] !== 'student') {
-            unset($sections['assignments']);
+            unset($sections['assignments'], $sections['submissions']);
             $section = isset($sections[$section]) ? $section : 'programs';
         }
         $uuid = strtolower($auth['id']);
@@ -181,6 +183,10 @@ try {
                 'visible_to' => 'cs.{' . $uuid . '}',
                 'data->>userID' => 'ilike.' . $uuid,
                 'order' => 'data->>date.desc,id.asc',
+            ],
+            'submissions' => [
+                'data->>studentID' => 'ilike.' . $uuid,
+                'order' => 'data->>submittedAt.desc,id.asc',
             ],
             'assignments' => [
                 'data->>audience' => 'eq.students',
@@ -197,6 +203,28 @@ try {
         $items = kksuRequest('/rest/v1/kksu_records?' . $query, null, $auth['access']);
         $hasMore = count($items) > 20;
         $items = array_slice($items, 0, 20);
+        if ($section === 'submissions' && $items) {
+            $assignmentIds = [];
+            foreach ($items as $item) {
+                $id = $item['data']['assignmentID'] ?? null;
+                if (is_string($id) && preg_match('/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/Di', $id)) {
+                    $assignmentIds[strtolower($id)] = true;
+                }
+            }
+            if ($assignmentIds) {
+                $titleQuery = http_build_query([
+                    'select' => 'id,data->>title', 'school_id' => 'eq.kksu', 'collection' => 'eq.assignments',
+                    'deleted' => 'eq.false', 'data->>approvedByTeacher' => 'eq.true',
+                    'data->>audience' => 'eq.students', 'id' => 'in.(' . implode(',', array_keys($assignmentIds)) . ')',
+                ]);
+                $assignments = kksuRequest('/rest/v1/kksu_records?' . $titleQuery, null, $auth['access']);
+                foreach ($assignments as $assignment) {
+                    if (is_string($assignment['title'] ?? null)) {
+                        $assignmentTitles[$assignment['id']] = $assignment['title'];
+                    }
+                }
+            }
+        }
     }
 } catch (RuntimeException | JsonException $exception) {
     if ($auth !== null && in_array($exception->getCode(), [400, 401], true)) {
@@ -256,14 +284,18 @@ try {
       <?php foreach ($items as $item):
         $data = $item['data'] ?? [];
         $link = kksuLink($data['url'] ?? null);
+        $title = $section === 'submissions'
+            ? ($assignmentTitles[strtolower((string)($data['assignmentID'] ?? ''))] ?? 'Учебная работа')
+            : (string)($data['title'] ?? '');
         $summary = match ($section) {
             'assignments' => $data['details'] ?? '',
             'notifications' => $data['body'] ?? '',
+            'submissions' => $data['text'] ?? '',
             default => $data['summary'] ?? '',
         };
         ?>
         <article>
-          <h3><?= kksuHtml((string)($data['title'] ?? '')) ?></h3>
+          <h3><?= kksuHtml($title) ?></h3>
           <?php if (is_string($summary) && $summary !== ''): ?><p><?= nl2br(kksuHtml($summary)) ?></p><?php endif; ?>
           <?php if ($section === 'programs'): ?>
             <p><?= kksuHtml((string)($data['ageRange'] ?? '')) ?> · Недель: <?= (int)($data['durationWeeks'] ?? 0) ?></p>
@@ -283,6 +315,19 @@ try {
             <p><?= kksuHtml(kksuDate($data['date'] ?? null)) ?> (Алматы)<?= ($data['isRead'] ?? true) === false ? ' · Новое' : '' ?></p>
           <?php elseif ($section === 'assignments'): ?>
             <p><?= kksuHtml((string)($data['subject'] ?? '')) ?> · Срок <?= kksuHtml(kksuDate($data['dueDate'] ?? null)) ?> (Алматы) · <?= (int)($data['maxScore'] ?? 0) ?> баллов</p>
+          <?php elseif ($section === 'submissions'):
+            $status = match ($data['status'] ?? '') {
+                'submitted' => 'На проверке',
+                'graded' => 'Оценено',
+                'returned' => 'На доработку',
+                default => 'Статус не указан',
+            };
+            ?>
+            <p><?= $status ?> · <?= kksuHtml(kksuDate($data['submittedAt'] ?? null)) ?> (Алматы)</p>
+            <?php if (is_int($data['score'] ?? null)): ?><p>Балл: <?= $data['score'] ?></p><?php endif; ?>
+            <?php if (is_string($data['feedback'] ?? null) && $data['feedback'] !== ''): ?>
+              <p><strong>Отзыв педагога</strong><br><?= nl2br(kksuHtml($data['feedback'])) ?></p>
+            <?php endif; ?>
           <?php elseif ($section === 'library' && $link !== null): ?>
             <a href="<?= kksuHtml($link) ?>" rel="noreferrer">Открыть материал</a>
           <?php endif; ?>
