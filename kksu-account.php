@@ -16,6 +16,24 @@ function kksuHtml(string $value): string
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function kksuDate($value): string
+{
+    if (!is_string($value) || $value === '') {
+        return '';
+    }
+    try {
+        return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('Asia/Almaty'))->format('d.m.Y H:i');
+    } catch (Exception $exception) {
+        return '';
+    }
+}
+
+function kksuLink($value): ?string
+{
+    return is_string($value) && filter_var($value, FILTER_VALIDATE_URL)
+        && parse_url($value, PHP_URL_SCHEME) === 'https' ? $value : null;
+}
+
 function kksuRequest(string $path, ?array $body = null, ?string $token = null): array
 {
     static $config;
@@ -91,9 +109,15 @@ $memberships = [
     'psychologist' => 'Психолог', 'expert' => 'Эксперт', 'mentor' => 'Наставник',
     'partner' => 'Партнёр', 'admin' => 'Администратор',
 ];
-$catalogs = ['programs' => 'Учебные программы', 'library' => 'Библиотека'];
+$sections = [
+    'programs' => 'Учебные программы',
+    'library' => 'Библиотека',
+    'sessions' => 'Моё расписание',
+    'notifications' => 'Уведомления',
+    'assignments' => 'Задания',
+];
 $section = $_GET['section'] ?? 'programs';
-if (!is_string($section) || !isset($catalogs[$section])) {
+if (!is_string($section) || !isset($sections[$section])) {
     $section = 'programs';
 }
 $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 10000]]) ?: 1;
@@ -142,10 +166,33 @@ try {
         if ($member === null || $member['blocked'] || !$member['approved'] || !isset($memberships[$member['role']])) {
             throw new RuntimeException('Этот аккаунт пока не имеет доступа к кабинету KKSU.');
         }
-        $query = http_build_query([
-            'select' => 'data', 'school_id' => 'eq.kksu', 'collection' => 'eq.' . $section,
-            'deleted' => 'eq.false', 'visible_to' => 'eq.{}', 'order' => 'data->>title.asc,id.asc',
-            'limit' => 21, 'offset' => ($page - 1) * 20,
+        if ($member['role'] !== 'student') {
+            unset($sections['assignments']);
+            $section = isset($sections[$section]) ? $section : 'programs';
+        }
+        $uuid = strtolower($auth['id']);
+        $upperUuid = strtoupper($uuid);
+        $filters = match ($section) {
+            'sessions' => [
+                'or' => "(data->participantIDs.cs.[\"$uuid\"],data->participantIDs.cs.[\"$upperUuid\"])",
+                'order' => 'data->>start.asc,id.asc',
+            ],
+            'notifications' => [
+                'visible_to' => 'cs.{' . $uuid . '}',
+                'data->>userID' => 'ilike.' . $uuid,
+                'order' => 'data->>date.desc,id.asc',
+            ],
+            'assignments' => [
+                'data->>audience' => 'eq.students',
+                'data->>approvedByTeacher' => 'eq.true',
+                'or' => "(data->assignedIDs.eq.[],data->assignedIDs.cs.[\"$uuid\"],data->assignedIDs.cs.[\"$upperUuid\"])",
+                'order' => 'data->>dueDate.asc,id.asc',
+            ],
+            default => ['visible_to' => 'eq.{}', 'order' => 'data->>title.asc,id.asc'],
+        };
+        $query = http_build_query($filters + [
+            'select' => 'id,data', 'school_id' => 'eq.kksu', 'collection' => 'eq.' . $section,
+            'deleted' => 'eq.false', 'limit' => 21, 'offset' => ($page - 1) * 20,
         ]);
         $items = kksuRequest('/rest/v1/kksu_records?' . $query, null, $auth['access']);
         $hasMore = count($items) > 20;
@@ -200,28 +247,47 @@ try {
     <?php if ($error === '' && $member !== null): ?>
       <p><?= kksuHtml($member['full_name']) ?> · <?= kksuHtml($memberships[$member['role']]) ?></p>
       <nav aria-label="Разделы кабинета">
-        <?php foreach ($catalogs as $key => $title): ?>
+        <?php foreach ($sections as $key => $title): ?>
           <a href="?section=<?= $key ?>"<?= $section === $key ? ' aria-current="page"' : '' ?>><?= kksuHtml($title) ?></a>
         <?php endforeach; ?>
       </nav>
-      <h2><?= kksuHtml($catalogs[$section]) ?></h2>
+      <h2><?= kksuHtml($sections[$section]) ?></h2>
       <?php if (!$items): ?><p>На этой странице пока нет материалов.</p><?php endif; ?>
       <?php foreach ($items as $item):
         $data = $item['data'] ?? [];
-        $link = $data['url'] ?? '';
+        $link = kksuLink($data['url'] ?? null);
+        $summary = match ($section) {
+            'assignments' => $data['details'] ?? '',
+            'notifications' => $data['body'] ?? '',
+            default => $data['summary'] ?? '',
+        };
         ?>
         <article>
           <h3><?= kksuHtml((string)($data['title'] ?? '')) ?></h3>
-          <p><?= kksuHtml((string)($data['summary'] ?? '')) ?></p>
+          <?php if (is_string($summary) && $summary !== ''): ?><p><?= nl2br(kksuHtml($summary)) ?></p><?php endif; ?>
           <?php if ($section === 'programs'): ?>
             <p><?= kksuHtml((string)($data['ageRange'] ?? '')) ?> · Недель: <?= (int)($data['durationWeeks'] ?? 0) ?></p>
-          <?php else: ?>
-            <?php if (is_string($link) && filter_var($link, FILTER_VALIDATE_URL) && parse_url($link, PHP_URL_SCHEME) === 'https'): ?>
-              <a href="<?= kksuHtml($link) ?>" rel="noreferrer">Открыть материал</a>
-            <?php endif; ?>
-            <?php if (is_string($data['textAlternative'] ?? null) && $data['textAlternative'] !== ''): ?>
-              <details><summary>Текстовая версия</summary><p><?= nl2br(kksuHtml($data['textAlternative'])) ?></p></details>
-            <?php endif; ?>
+          <?php elseif ($section === 'sessions'):
+            $meeting = kksuLink($data['meetingURL'] ?? null);
+            $recording = kksuLink($data['recordingURL'] ?? null);
+            if (($data['meetingURL'] ?? '') === '' && ($data['isOnline'] ?? false) === true
+                && ($data['platform'] ?? '') === 'jitsi' && preg_match('/^[a-f0-9-]{36}$/Di', $item['id'] ?? '')) {
+                $meeting = 'https://meet.jit.si/KKSU-' . strtoupper(substr($item['id'], 0, 8));
+            }
+            ?>
+            <p><?= kksuHtml((string)($data['subject'] ?? '')) ?> · <?= kksuHtml(kksuDate($data['start'] ?? null)) ?> (Алматы) · <?= (int)($data['durationMinutes'] ?? 0) ?> мин</p>
+            <?php if (is_string($data['room'] ?? null) && $data['room'] !== ''): ?><p>Кабинет <?= kksuHtml($data['room']) ?></p><?php endif; ?>
+            <?php if ($meeting !== null): ?><a href="<?= kksuHtml($meeting) ?>" rel="noreferrer">Подключиться к занятию</a><?php endif; ?>
+            <?php if ($recording !== null): ?><a href="<?= kksuHtml($recording) ?>" rel="noreferrer">Запись занятия</a><?php endif; ?>
+          <?php elseif ($section === 'notifications'): ?>
+            <p><?= kksuHtml(kksuDate($data['date'] ?? null)) ?> (Алматы)<?= ($data['isRead'] ?? true) === false ? ' · Новое' : '' ?></p>
+          <?php elseif ($section === 'assignments'): ?>
+            <p><?= kksuHtml((string)($data['subject'] ?? '')) ?> · Срок <?= kksuHtml(kksuDate($data['dueDate'] ?? null)) ?> (Алматы) · <?= (int)($data['maxScore'] ?? 0) ?> баллов</p>
+          <?php elseif ($section === 'library' && $link !== null): ?>
+            <a href="<?= kksuHtml($link) ?>" rel="noreferrer">Открыть материал</a>
+          <?php endif; ?>
+          <?php if (is_string($data['textAlternative'] ?? null) && $data['textAlternative'] !== ''): ?>
+            <details><summary>Текстовая версия</summary><p><?= nl2br(kksuHtml($data['textAlternative'])) ?></p></details>
           <?php endif; ?>
         </article>
       <?php endforeach; ?>
