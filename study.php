@@ -191,6 +191,46 @@ function render_course_item(array $it, $row, $lesson_id, $n)
     <?php
 }
 
+// A flashcard deck: cards are flipped and rated in the browser; ratings are saved by fetch()
+function render_card_deck(array $cards, $title, $show_lesson = false)
+{
+    $learned = count(array_filter($cards, fn($c) => $c["learned"]));
+    $due = count(array_filter($cards, fn($c) => $c["due"]));
+    ?>
+    <section class="js-deck bg-white rounded-xl border-2 border-indigo-200 p-5" data-cards="<?= e(json_encode(array_values($cards), JSON_UNESCAPED_UNICODE)) ?>" data-csrf="<?= e(csrf_token()) ?>" data-show-lesson="<?= $show_lesson ? 1 : 0 ?>">
+        <div class="flex flex-wrap justify-between items-end gap-2 mb-3">
+            <h3 class="font-bold text-lg">🃏 <?= e($title) ?></h3>
+            <div class="text-sm text-slate-600"><?= e(t("k_learned")) ?>: <b class="deck-learned"><?= $learned ?></b> / <?= count($cards) ?> · <?= e(t("k_due")) ?>: <b class="deck-due"><?= $due ?></b></div>
+        </div>
+        <div class="deck-play">
+            <div class="text-xs text-slate-500 mb-1 deck-meta"></div>
+            <button type="button" class="flip-card w-full text-left" aria-label="<?= e(t("k_flip")) ?>">
+                <div class="flip-inner">
+                    <div class="flip-face flip-front"><div class="text-xs uppercase tracking-wide text-indigo-500 mb-2"><?= e(t("k_question")) ?></div><div class="deck-front text-xl font-semibold"></div></div>
+                    <div class="flip-face flip-back"><div class="text-xs uppercase tracking-wide text-green-600 mb-2"><?= e(t("k_answer")) ?></div><div class="deck-back text-xl font-semibold"></div></div>
+                </div>
+            </button>
+            <div class="deck-hint text-center text-sm text-slate-500 mt-2"><?= e(t("k_hint")) ?></div>
+            <div class="deck-rate hidden mt-3 grid grid-cols-2 gap-3">
+                <button type="button" data-rate="again" class="py-3 rounded-lg border-2 border-red-300 text-red-700 font-semibold hover:bg-red-50">✗ <?= e(t("k_again")) ?></button>
+                <button type="button" data-rate="good" class="py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700">✓ <?= e(t("k_good")) ?></button>
+            </div>
+            <div class="text-xs text-slate-400 text-center mt-2"><span class="deck-left"></span> <?= e(t("k_left")) ?></div>
+        </div>
+        <div class="deck-done hidden text-center py-6">
+            <div class="text-green-700 font-bold text-lg">✓ <?= e(t("k_done")) ?></div>
+            <button type="button" class="deck-again mt-3 px-4 py-2 rounded-lg border"><?= e(t("k_practice_all")) ?></button>
+        </div>
+        <details class="mt-4 text-sm">
+            <summary class="cursor-pointer text-slate-500"><?= e(t("k_all")) ?> (<?= count($cards) ?>)</summary>
+            <div class="grid sm:grid-cols-2 gap-2 mt-2">
+                <?php foreach ($cards as $c): ?><div class="border rounded-lg p-2"><div class="font-semibold"><?= e($c["front"]) ?></div><div class="text-slate-600">→ <?= e($c["back"]) ?></div></div><?php endforeach; ?>
+            </div>
+        </details>
+    </section>
+    <?php
+}
+
 // Short module title from the book's section names
 function bank_module_title($sections)
 {
@@ -220,6 +260,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt->execute();
         return $stmt;
     };
+
+    // ----- flashcards: rating by fetch() -----
+    if ($act === "card_rate") {
+        $found = course_card((string)($_POST["key"] ?? ""));
+        $rating = ($_POST["rating"] ?? "") === "good" ? "good" : "again";
+        $open = false;
+        if ($found) {
+            [$card, $lesson] = $found;
+            [$answers, $tests] = course_progress($user_id);
+            foreach (course_state($lesson["track"], $answers, $tests) as $s) {
+                if ($s["id"] === $lesson["id"]) { $open = $s["open"]; }
+            }
+        }
+        if (!$open) {
+            http_response_code(403);
+            die(e(t("c_locked")));
+        }
+        $row = course_card_rows($user_id)[$card["key"]] ?? null;
+        $box = $rating === "good" ? min(5, (int)($row["box"] ?? 0) + 1) : 0;
+        $due = $rating === "good" ? date("Y-m-d", strtotime("+" . CARD_INTERVALS[$box] . " day")) : date("Y-m-d");
+        $run("INSERT INTO study_course_cards (user_id, card_key, box, due, reviews) VALUES (?, ?, ?, ?, 1)
+              ON DUPLICATE KEY UPDATE box = VALUES(box), due = VALUES(due), reviews = reviews + 1", "isis", $user_id, $card["key"], $box, $due);
+        header("Content-Type: application/json; charset=UTF-8");
+        echo json_encode(["key" => $card["key"], "box" => $box, "due" => $due]);
+        exit;
+    }
 
     // ----- SAT course: answers by fetch() (JSON back), tests -----
     if ($act === "course_check" || $act === "course_reveal") {
@@ -1894,11 +1960,13 @@ elseif ($tab === "satcourse"):
     <a href="?tab=satcourse&track=<?= $track ?>" class="text-blue-700">← <?= e(t("c_back_map")) ?></a>
     <?php if (!$step["open"]): ?>
         <div class="<?= $card ?> mt-4">🔒 <?= e(t("c_locked")) ?></div>
-    <?php else: $warm = course_warmup($lesson); ?>
+    <?php else: $warm = course_warmup($lesson); $card_rows = course_card_rows($user_id); ?>
         <div class="mt-3 mb-6">
             <div class="text-sm text-slate-500"><?= e(t("c_unit")) ?> <?= (int)$lesson["unit"] ?> · <?= e(t("c_lesson")) ?> <?= $lesson["index"] + 1 ?> · <?= e($lesson["grade"]) ?></div>
             <h2 class="text-3xl font-bold"><?= e($lesson["title"]) ?></h2>
         </div>
+
+        <div class="mb-6"><?php render_card_deck(array_map(fn($c) => course_card_view($c, $card_rows[$c["key"]] ?? null, $lesson), $lesson["cards"] ?? []), t("k_title") . ": " . $lesson["title"]); ?></div>
 
         <div class="grid lg:grid-cols-3 gap-6 mb-6">
             <section class="<?= $card ?> lg:col-span-2 space-y-4">
@@ -1942,6 +2010,24 @@ elseif ($tab === "satcourse"):
             <div class="text-green-700 font-bold text-lg mb-2">🎉 <?= e(t("c_lesson_done")) ?></div>
             <?php if ($after): ?><a href="<?= $step_link($after) ?>" class="inline-block bg-slate-900 text-white px-6 py-3 rounded-lg"><?= e(t("c_next")) ?>: <?= e($after["type"] === "lesson" ? $after["lesson"]["title"] : $test_label($after)) ?> →</a><?php endif; ?>
         </div>
+    <?php endif; ?>
+
+<?php elseif (($_GET["cards"] ?? "") === "review"):
+    $card_rows = course_card_rows($user_id);
+    $review = [];
+    foreach ($state as $s) {
+        if ($s["type"] === "lesson" && $s["open"]) {
+            foreach ($s["lesson"]["cards"] ?? [] as $c) {
+                $v = course_card_view($c, $card_rows[$c["key"]] ?? null, $s["lesson"]);
+                if ($v["due"]) { $review[] = $v; }
+            }
+        }
+    } ?>
+    <a href="?tab=satcourse&track=<?= $track ?>" class="text-blue-700">← <?= e(t("c_back_map")) ?></a>
+    <h2 class="text-3xl font-bold mt-3 mb-1"><?= e(t("k_review_title")) ?></h2>
+    <p class="text-slate-600 mb-5"><?= e(t("k_review_hint")) ?></p>
+    <?php if ($review): render_card_deck($review, t("k_due_today"), true); else: ?>
+        <div class="<?= $card ?> text-green-700 font-semibold">✓ <?= e(t("k_none_due")) ?></div>
     <?php endif; ?>
 
 <?php elseif ($test_id !== "" && isset($by_id[$test_id]) && $by_id[$test_id]["type"] === "test"): $step = $by_id[$test_id]; $row = $step["row"]; $retake = isset($_GET["retake"]); ?>
@@ -2009,7 +2095,24 @@ elseif ($tab === "satcourse"):
     <h2 class="text-2xl font-bold"><?= e(t("c_title")) ?></h2>
     <p class="text-slate-600 mt-1 mb-5"><?= e(t("c_hint")) ?></p>
 
-    <div class="grid sm:grid-cols-3 gap-4 mb-6">
+    <?php
+    $card_rows = course_card_rows($user_id);
+    $cards_total = 0; $cards_learned = 0; $cards_due = 0;
+    foreach ($state as $s) {
+        if ($s["type"] === "lesson" && $s["open"]) {
+            foreach ($s["lesson"]["cards"] ?? [] as $c) {
+                $v = course_card_view($c, $card_rows[$c["key"]] ?? null, $s["lesson"]);
+                $cards_total++; $cards_learned += $v["learned"] ? 1 : 0; $cards_due += $v["due"] ? 1 : 0;
+            }
+        }
+    } ?>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <a href="?tab=satcourse&track=<?= $track ?>&cards=review" class="<?= $card ?> border-indigo-200 hover:shadow">
+            <div class="text-sm text-slate-500">🃏 <?= e(t("k_title")) ?></div>
+            <div class="text-3xl font-bold"><?= $cards_due ?></div>
+            <div class="text-xs text-slate-500 mt-1"><?= e(t("k_due_today")) ?> · <?= e(t("k_learned")) ?> <?= $cards_learned ?>/<?= $cards_total ?></div>
+            <div class="text-sm text-indigo-700 font-semibold mt-2"><?= e(t("k_review_btn")) ?> →</div>
+        </a>
         <div class="<?= $card ?>"><div class="text-sm text-slate-500"><?= e(t("c_lessons_done")) ?></div><div class="text-3xl font-bold"><?= $lessons_done ?> / <?= $lessons_total ?></div>
             <div class="h-2 bg-slate-200 rounded mt-2"><div class="h-2 bg-green-600 rounded" style="width: <?= round($lessons_done / max(1, $lessons_total) * 100) ?>%"></div></div></div>
         <div class="<?= $card ?>"><div class="text-sm text-slate-500"><?= e(t("c_accuracy")) ?></div><div class="text-3xl font-bold"><?= $ans ? round($cor / $ans * 100) . "%" : "—" ?></div></div>
@@ -2264,7 +2367,79 @@ elseif ($tab === "health"):
 
 </div>
 
+<style>
+.flip-card { perspective: 1200px; }
+.flip-inner { position: relative; min-height: 11rem; transition: transform .5s; transform-style: preserve-3d; }
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: .75rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.flip-front { background: #eef2ff; border: 2px solid #c7d2fe; }
+.flip-back { background: #f0fdf4; border: 2px solid #86efac; transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } }
+</style>
 <script>
+// Flashcards: flip, rate, spaced repetition
+document.querySelectorAll(".js-deck").forEach(function (deck) {
+    const all = JSON.parse(deck.dataset.cards || "[]");
+    const showLesson = deck.dataset.showLesson === "1";
+    const $ = s => deck.querySelector(s);
+    let queue = all.filter(c => c.due);
+    let practice = false;   // "practice all again": nothing is saved
+    let flipped = false;
+    const learned = new Set(all.filter(c => c.learned).map(c => c.key));
+    const dueSet = new Set(queue.map(c => c.key));
+
+    function counters() {
+        $(".deck-learned").textContent = learned.size;
+        $(".deck-due").textContent = dueSet.size;
+        $(".deck-left").textContent = queue.length;
+    }
+    function show() {
+        counters();
+        if (!queue.length) {
+            $(".deck-play").classList.add("hidden");
+            $(".deck-done").classList.remove("hidden");
+            return;
+        }
+        $(".deck-play").classList.remove("hidden");
+        $(".deck-done").classList.add("hidden");
+        const c = queue[0];
+        flipped = false;
+        $(".flip-card").classList.remove("flipped");
+        $(".deck-front").textContent = c.front;
+        $(".deck-back").textContent = c.back;
+        $(".deck-meta").textContent = showLesson ? c.lesson : "";
+        $(".deck-rate").classList.add("hidden");
+        $(".deck-hint").classList.remove("hidden");
+    }
+    function flip() {
+        if (!queue.length) return;
+        flipped = !flipped;
+        $(".flip-card").classList.toggle("flipped", flipped);
+        if (flipped) { $(".deck-rate").classList.remove("hidden"); $(".deck-hint").classList.add("hidden"); }
+    }
+    function rate(rating) {
+        const c = queue.shift();
+        if (rating === "again") { queue.push(c); learned.delete(c.key); }
+        else { learned.add(c.key); dueSet.delete(c.key); }
+        if (rating === "again") dueSet.add(c.key);
+        if (!practice) {
+            const data = new FormData();
+            data.set("csrf_token", deck.dataset.csrf); data.set("act", "card_rate"); data.set("key", c.key); data.set("rating", rating);
+            fetch(location.href, { method: "POST", body: data, headers: { "X-Requested-With": "fetch" } }).catch(() => {});
+        }
+        show();
+    }
+    $(".flip-card").addEventListener("click", flip);
+    deck.querySelectorAll("[data-rate]").forEach(b => b.addEventListener("click", () => rate(b.dataset.rate)));
+    $(".deck-again").addEventListener("click", () => { practice = true; queue = all.slice().sort(() => Math.random() - 0.5); show(); });
+    deck.addEventListener("keydown", e => {
+        if (e.key === " " || e.key === "Enter") { if (e.target.closest(".flip-card")) { e.preventDefault(); flip(); } }
+        else if (flipped && e.key === "1") rate("again");
+        else if (flipped && e.key === "2") rate("good");
+    });
+    show();
+});
+
 // SAT course: check answers without reloading the page
 document.addEventListener("submit", async function (e) {
     const form = e.target;

@@ -232,3 +232,73 @@ function course_item($key)
     }
     return course_items()[$key] ?? null;
 }
+
+// ---------------------------------------------------------------
+// Flashcards: spaced repetition (Leitner boxes)
+// ---------------------------------------------------------------
+
+const CARD_INTERVALS = [1 => 1, 2 => 3, 3 => 7, 4 => 14, 5 => 30];   // box => days until the next review
+
+function ensure_cards_schema()
+{
+    global $conn;
+    $exists = $conn->query("SHOW TABLES LIKE 'study_course_cards'");
+    if ($exists && $exists->num_rows > 0) {
+        return;
+    }
+    $conn->query("
+        CREATE TABLE IF NOT EXISTS study_course_cards (
+            user_id INT NOT NULL,
+            card_key VARCHAR(30) NOT NULL,
+            box TINYINT NOT NULL DEFAULT 0,
+            due DATE NOT NULL,
+            reviews INT NOT NULL DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, card_key),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+ensure_cards_schema();
+
+// The user's cards: key => row
+function course_card_rows($user_id)
+{
+    global $conn;
+    $rows = [];
+    $stmt = $conn->prepare("SELECT * FROM study_course_cards WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $r) {
+        $rows[$r["card_key"]] = $r;
+    }
+    return $rows;
+}
+
+// A card for the deck: front/back plus its state (new, due today, learned = known until a later day)
+function course_card_view(array $card, $row, $lesson)
+{
+    $today = date("Y-m-d");
+    return [
+        "key" => $card["key"], "front" => $card["front"], "back" => $card["back"], "lesson" => $lesson["title"], "lesson_id" => $lesson["id"],
+        "box" => (int)($row["box"] ?? 0),
+        "due" => !$row || $row["due"] <= $today,
+        "learned" => $row && (int)$row["box"] > 0,
+    ];
+}
+
+// Card by key with its lesson (only cards of lessons that exist)
+function course_card($key)
+{
+    if (!preg_match('/^([me]\d{2})-c\d{1,2}$/', $key, $m)) {
+        return null;
+    }
+    $lesson = course_lesson($m[1]);
+    foreach ($lesson["cards"] ?? [] as $c) {
+        if ($c["key"] === $key) {
+            return [$c, $lesson];
+        }
+    }
+    return null;
+}

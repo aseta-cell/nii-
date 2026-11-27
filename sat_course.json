@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "pass_share": 0.6,
  "tracks": {
   "math": {
@@ -111,6 +111,38 @@
        "a": "6",
        "why": "Cross-multiply: x·72 = 8·54 ⇒ x = 6."
       }
+     ],
+     "cards": [
+      {
+       "key": "m01-c1",
+       "front": "What does the ratio a:b mean as a fraction?",
+       "back": "a/b"
+      },
+      {
+       "key": "m01-c2",
+       "front": "How do you solve a/b = c/d?",
+       "back": "Cross-multiply: a·d = b·c"
+      },
+      {
+       "key": "m01-c3",
+       "front": "Ratio a:b — what fraction of the whole is the first part?",
+       "back": "a/(a + b)"
+      },
+      {
+       "key": "m01-c4",
+       "front": "Ratio 3:5. What is one \"part\" if the total is 40?",
+       "back": "40 ÷ (3 + 5) = 5"
+      },
+      {
+       "key": "m01-c5",
+       "front": "Part-to-part vs part-to-whole for 3:5?",
+       "back": "Part-to-part 3:5; part-to-whole 3:8"
+      },
+      {
+       "key": "m01-c6",
+       "front": "Boys:girls = 2:3 and there are 12 girls. Boys?",
+       "back": "One part = 4 ⇒ boys = 8"
+      }
      ]
     },
     {
@@ -219,6 +251,43 @@
        "q": "After a 25% price increase, an item costs 50. What was the price before the increase?",
        "a": "40",
        "why": "new = old·1.25 ⇒ old = 50/1.25 = 40."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m02-c1",
+       "front": "p% of N = ?",
+       "back": "N·p/100"
+      },
+      {
+       "key": "m02-c2",
+       "front": "Percent = ?",
+       "back": "part/whole · 100%"
+      },
+      {
+       "key": "m02-c3",
+       "front": "Multiplier for an increase of p%?",
+       "back": "1 + p/100 (e.g. +20% → ×1.2)"
+      },
+      {
+       "key": "m02-c4",
+       "front": "Multiplier for a decrease of p%?",
+       "back": "1 − p/100 (e.g. −25% → ×0.75)"
+      },
+      {
+       "key": "m02-c5",
+       "front": "+20% then −20%: net change?",
+       "back": "×1.2·0.8 = ×0.96 → 4% lower"
+      },
+      {
+       "key": "m02-c6",
+       "front": "After +25% the price is 100. Original?",
+       "back": "100 ÷ 1.25 = 80"
+      },
+      {
+       "key": "m02-c7",
+       "front": "\"Percent more than\" is computed from…?",
+       "back": "the original (old) number"
       }
      ]
     },
@@ -330,6 +399,43 @@
        "q": "Solve: x/3 + x/5 = 32",
        "a": "60",
        "why": "Multiply by 15: 5x + 3x = 480 ⇒ 8x = 480 ⇒ x = 60."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m03-c1",
+       "front": "Solve ax + b = c for x.",
+       "back": "x = (c − b)/a"
+      },
+      {
+       "key": "m03-c2",
+       "front": "a(x + b) = ?",
+       "back": "ax + ab"
+      },
+      {
+       "key": "m03-c3",
+       "front": "How do you clear fractions in an equation?",
+       "back": "Multiply both sides by the common denominator"
+      },
+      {
+       "key": "m03-c4",
+       "front": "−(x − 3) = ?",
+       "back": "−x + 3 (every sign flips)"
+      },
+      {
+       "key": "m03-c5",
+       "front": "x cancels and you get 0 = 0. Meaning?",
+       "back": "Infinitely many solutions"
+      },
+      {
+       "key": "m03-c6",
+       "front": "x cancels and you get 0 = 5. Meaning?",
+       "back": "No solution"
+      },
+      {
+       "key": "m03-c7",
+       "front": "Solve 11x + 12 = 188.",
+       "back": "x = 16"
       }
      ]
     },
@@ -466,6 +572,38 @@
        "a": "3",
        "why": "Let y be the $7 notebooks: 3(6 − y) + 7y = 30 ⇒ 4y = 12 ⇒ y = 3."
       }
+     ],
+     "cards": [
+      {
+       "key": "m04-c1",
+       "front": "Total cost model with a fixed fee?",
+       "back": "y = mx + b: b = fixed fee, m = cost per unit"
+      },
+      {
+       "key": "m04-c2",
+       "front": "In y = mx + b, what does b mean in context?",
+       "back": "The value when x = 0 (starting value)"
+      },
+      {
+       "key": "m04-c3",
+       "front": "In y = mx + b, what does m mean in context?",
+       "back": "Change in y for each 1 unit of x (rate)"
+      },
+      {
+       "key": "m04-c4",
+       "front": "$30 + $5 per class, total $80. Classes?",
+       "back": "30 + 5n = 80 ⇒ n = 10"
+      },
+      {
+       "key": "m04-c5",
+       "front": "First step in any word problem?",
+       "back": "Name the unknown with a letter"
+      },
+      {
+       "key": "m04-c6",
+       "front": "Last step in any word problem?",
+       "back": "Answer the exact question asked"
+      }
      ]
     },
     {
@@ -575,6 +713,38 @@
        "q": "A car travels at 42 miles per hour. How many miles does it travel in 3 hours?",
        "a": "126",
        "why": "d = v·t = 42·3 = 126."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m05-c1",
+       "front": "Distance formula?",
+       "back": "d = r·t"
+      },
+      {
+       "key": "m05-c2",
+       "front": "Unit rate?",
+       "back": "amount ÷ time (or price ÷ items)"
+      },
+      {
+       "key": "m05-c3",
+       "front": "Two workers together — combined rate?",
+       "back": "Rates add: 1/t = 1/t₁ + 1/t₂"
+      },
+      {
+       "key": "m05-c4",
+       "front": "How do you convert units?",
+       "back": "Multiply by a fraction equal to 1 (e.g. 60 min/1 h)"
+      },
+      {
+       "key": "m05-c5",
+       "front": "Average speed = ?",
+       "back": "total distance ÷ total time"
+      },
+      {
+       "key": "m05-c6",
+       "front": "90 km/h in m/s?",
+       "back": "90·1000/3600 = 25 m/s"
       }
      ]
     },
@@ -687,6 +857,48 @@
        "a": "27",
        "why": "729 = 3^6 ⇒ x = 6; 3^3 = 27."
       }
+     ],
+     "cards": [
+      {
+       "key": "m06-c1",
+       "front": "a^m · a^n = ?",
+       "back": "a^(m+n)"
+      },
+      {
+       "key": "m06-c2",
+       "front": "a^m / a^n = ?",
+       "back": "a^(m−n)"
+      },
+      {
+       "key": "m06-c3",
+       "front": "(a^m)^n = ?",
+       "back": "a^(mn)"
+      },
+      {
+       "key": "m06-c4",
+       "front": "a^0 = ?",
+       "back": "1"
+      },
+      {
+       "key": "m06-c5",
+       "front": "a^(−n) = ?",
+       "back": "1/a^n"
+      },
+      {
+       "key": "m06-c6",
+       "front": "a^(1/n) = ?",
+       "back": "the n-th root of a"
+      },
+      {
+       "key": "m06-c7",
+       "front": "8^(2/3) = ?",
+       "back": "(∛8)² = 4"
+      },
+      {
+       "key": "m06-c8",
+       "front": "Is (a + b)² = a² + b²?",
+       "back": "No: (a + b)² = a² + 2ab + b²"
+      }
      ]
     },
     {
@@ -797,6 +1009,43 @@
        "a": "43",
        "why": "Square both sides: x + 6 = 49 ⇒ x = 43. The check works."
       }
+     ],
+     "cards": [
+      {
+       "key": "m07-c1",
+       "front": "√(ab) = ?",
+       "back": "√a·√b"
+      },
+      {
+       "key": "m07-c2",
+       "front": "√(a/b) = ?",
+       "back": "√a / √b"
+      },
+      {
+       "key": "m07-c3",
+       "front": "√(a²) = ?",
+       "back": "|a|"
+      },
+      {
+       "key": "m07-c4",
+       "front": "Rationalize 1/√a.",
+       "back": "√a/a"
+      },
+      {
+       "key": "m07-c5",
+       "front": "Simplify √72.",
+       "back": "6√2"
+      },
+      {
+       "key": "m07-c6",
+       "front": "Is √(a + b) = √a + √b?",
+       "back": "No"
+      },
+      {
+       "key": "m07-c7",
+       "front": "After squaring both sides of a radical equation, always…?",
+       "back": "Check for extra (false) solutions"
+      }
      ]
     },
     {
@@ -906,6 +1155,43 @@
        "a": "90",
        "why": "Needed sum 480, current sum 390 ⇒ 90."
       }
+     ],
+     "cards": [
+      {
+       "key": "m08-c1",
+       "front": "Mean = ?",
+       "back": "sum ÷ count"
+      },
+      {
+       "key": "m08-c2",
+       "front": "Sum from the mean?",
+       "back": "sum = mean · count"
+      },
+      {
+       "key": "m08-c3",
+       "front": "Median?",
+       "back": "The middle value of the ORDERED list"
+      },
+      {
+       "key": "m08-c4",
+       "front": "Median with an even count?",
+       "back": "Average of the two middle values"
+      },
+      {
+       "key": "m08-c5",
+       "front": "Range = ?",
+       "back": "max − min"
+      },
+      {
+       "key": "m08-c6",
+       "front": "An outlier affects which more: mean or median?",
+       "back": "The mean"
+      },
+      {
+       "key": "m08-c7",
+       "front": "\"What must the next score be?\" Work with…",
+       "back": "sums: needed sum − current sum"
+      }
      ]
     },
     {
@@ -1011,6 +1297,38 @@
        "q": "A bag has 4 blue and 4 red marbles. Two are drawn without replacement. What is P(both blue)?",
        "a": "3/14",
        "why": "4/8 · 3/7 = 3/14."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m09-c1",
+       "front": "P(A) = ?",
+       "back": "favorable outcomes ÷ total outcomes"
+      },
+      {
+       "key": "m09-c2",
+       "front": "P(not A) = ?",
+       "back": "1 − P(A)"
+      },
+      {
+       "key": "m09-c3",
+       "front": "Independent events: P(A and B) = ?",
+       "back": "P(A)·P(B)"
+      },
+      {
+       "key": "m09-c4",
+       "front": "Without replacement, what changes?",
+       "back": "The total (denominator) decreases each draw"
+      },
+      {
+       "key": "m09-c5",
+       "front": "\"At least one\" — easiest way?",
+       "back": "1 − P(none)"
+      },
+      {
+       "key": "m09-c6",
+       "front": "7 blue, 3 red. P(blue)?",
+       "back": "7/10 (not 7/3)"
       }
      ]
     },
@@ -1118,6 +1436,38 @@
        "a": "9",
        "why": "Area changes by k² = 9."
       }
+     ],
+     "cards": [
+      {
+       "key": "m10-c1",
+       "front": "Area of a rectangle?",
+       "back": "A = l·w"
+      },
+      {
+       "key": "m10-c2",
+       "front": "Perimeter of a rectangle?",
+       "back": "P = 2(l + w)"
+      },
+      {
+       "key": "m10-c3",
+       "front": "Area of a triangle?",
+       "back": "A = ½·base·height"
+      },
+      {
+       "key": "m10-c4",
+       "front": "Area of a trapezoid?",
+       "back": "A = ½(b₁ + b₂)·h"
+      },
+      {
+       "key": "m10-c5",
+       "front": "Lengths ×k — area changes by?",
+       "back": "×k²"
+      },
+      {
+       "key": "m10-c6",
+       "front": "Is a triangle's height its slanted side?",
+       "back": "No — height is perpendicular to the base"
+      }
      ]
     },
     {
@@ -1222,6 +1572,38 @@
        "q": "Sara has $94. A ticket costs $10. What is the greatest number of tickets she can buy?",
        "a": "9",
        "why": "10n ≤ 94 ⇒ n ≤ 9.40 ⇒ at most 9 (a whole number)."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m11-c1",
+       "front": "When does the inequality sign flip?",
+       "back": "When you multiply or divide by a negative number"
+      },
+      {
+       "key": "m11-c2",
+       "front": "Solve −3x > 12.",
+       "back": "x < −4"
+      },
+      {
+       "key": "m11-c3",
+       "front": "\"No more than\" = ?",
+       "back": "≤"
+      },
+      {
+       "key": "m11-c4",
+       "front": "\"At least\" = ?",
+       "back": "≥"
+      },
+      {
+       "key": "m11-c5",
+       "front": "a < x < b is called…?",
+       "back": "A compound inequality"
+      },
+      {
+       "key": "m11-c6",
+       "front": "\"Greatest number of tickets\" — how do you round?",
+       "back": "Down to a whole number"
       }
      ]
     },
@@ -1328,6 +1710,43 @@
        "q": "A line is perpendicular to y = (3/2)x + 1. What is its slope?",
        "a": "-2/3",
        "why": "m₁·m₂ = −1 ⇒ m₂ = −1/(3/2) = -2/3."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m12-c1",
+       "front": "Slope formula?",
+       "back": "m = (y₂ − y₁)/(x₂ − x₁)"
+      },
+      {
+       "key": "m12-c2",
+       "front": "In y = mx + b, b is…?",
+       "back": "the y-intercept"
+      },
+      {
+       "key": "m12-c3",
+       "front": "Slope of Ax + By = C?",
+       "back": "m = −A/B"
+      },
+      {
+       "key": "m12-c4",
+       "front": "Parallel lines have…?",
+       "back": "equal slopes"
+      },
+      {
+       "key": "m12-c5",
+       "front": "Perpendicular lines have…?",
+       "back": "slopes with m₁·m₂ = −1"
+      },
+      {
+       "key": "m12-c6",
+       "front": "Slope of a horizontal line?",
+       "back": "0"
+      },
+      {
+       "key": "m12-c7",
+       "front": "Slope of a vertical line?",
+       "back": "Undefined"
       }
      ]
     },
@@ -1464,6 +1883,38 @@
         "5"
        ]
       }
+     ],
+     "cards": [
+      {
+       "key": "m13-c1",
+       "front": "Linear function form?",
+       "back": "f(x) = mx + b"
+      },
+      {
+       "key": "m13-c2",
+       "front": "Slope from two values of f?",
+       "back": "(f(x₂) − f(x₁))/(x₂ − x₁)"
+      },
+      {
+       "key": "m13-c3",
+       "front": "f(0) = ?",
+       "back": "b, the starting value"
+      },
+      {
+       "key": "m13-c4",
+       "front": "Growth over 3 units of x?",
+       "back": "3m (not the function value)"
+      },
+      {
+       "key": "m13-c5",
+       "front": "Units of m?",
+       "back": "units of y per unit of x"
+      },
+      {
+       "key": "m13-c6",
+       "front": "f(1) = 5, f(3) = 11. f(x)?",
+       "back": "3x + 2"
+      }
      ]
     },
     {
@@ -1599,6 +2050,38 @@
         "any k"
        ]
       }
+     ],
+     "cards": [
+      {
+       "key": "m14-c1",
+       "front": "Two main ways to solve a system?",
+       "back": "Elimination and substitution"
+      },
+      {
+       "key": "m14-c2",
+       "front": "Geometric meaning of a system's solution?",
+       "back": "The intersection point of the two lines"
+      },
+      {
+       "key": "m14-c3",
+       "front": "No solution means the lines are…?",
+       "back": "parallel: a₁/a₂ = b₁/b₂ ≠ c₁/c₂"
+      },
+      {
+       "key": "m14-c4",
+       "front": "Infinitely many solutions means…?",
+       "back": "the same line: a₁/a₂ = b₁/b₂ = c₁/c₂"
+      },
+      {
+       "key": "m14-c5",
+       "front": "How does elimination work?",
+       "back": "Match a coefficient, then add or subtract the equations"
+      },
+      {
+       "key": "m14-c6",
+       "front": "Fast tool for any system?",
+       "back": "Desmos: graph both and click the intersection"
+      }
      ]
     },
     {
@@ -1701,6 +2184,28 @@
        "q": "A theater sold 30 tickets: adult tickets for $8 and child tickets for $7. It collected $222. How many adult tickets were sold?",
        "a": "12",
        "why": "x + y = 30; 8x + 7y = 222 ⇒ x = 12."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m15-c1",
+       "front": "Two equations in a tickets/coins problem?",
+       "back": "Count: x + y = N; Value: p₁x + p₂y = S"
+      },
+      {
+       "key": "m15-c2",
+       "front": "10 coins of $2 and $5 total $32. How many $5 coins?",
+       "back": "4"
+      },
+      {
+       "key": "m15-c3",
+       "front": "Boat downstream / upstream speeds?",
+       "back": "v + c and v − c"
+      },
+      {
+       "key": "m15-c4",
+       "front": "Before answering, check…?",
+       "back": "whether the question asks for x or y"
       }
      ]
     },
@@ -1811,6 +2316,38 @@
        "a": "6",
        "why": "2x − 6 = 6 ⇒ x = 6."
       }
+     ],
+     "cards": [
+      {
+       "key": "m16-c1",
+       "front": "How do you find f(a)?",
+       "back": "Substitute a for every x"
+      },
+      {
+       "key": "m16-c2",
+       "front": "f(g(x)) — which first?",
+       "back": "g first, then f (inside out)"
+      },
+      {
+       "key": "m16-c3",
+       "front": "Zeros of f?",
+       "back": "Solutions of f(x) = 0 — x-intercepts"
+      },
+      {
+       "key": "m16-c4",
+       "front": "f(x) + k does what to the graph?",
+       "back": "Shifts it up k"
+      },
+      {
+       "key": "m16-c5",
+       "front": "f(x − h) does what to the graph?",
+       "back": "Shifts it right h"
+      },
+      {
+       "key": "m16-c6",
+       "front": "(−2)² = ?",
+       "back": "4 (put negatives in parentheses)"
+      }
      ]
     },
     {
@@ -1914,6 +2451,33 @@
        "q": "Find the sum of the first 20 terms of 3, 10, 17, …",
        "a": "1390",
        "why": "S = n(a₁ + aₙ)/2 = 20·(3 + 136)/2 = 1390."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m17-c1",
+       "front": "n-th term of an arithmetic sequence?",
+       "back": "aₙ = a₁ + (n − 1)d"
+      },
+      {
+       "key": "m17-c2",
+       "front": "Sum of n terms (arithmetic)?",
+       "back": "Sₙ = n(a₁ + aₙ)/2"
+      },
+      {
+       "key": "m17-c3",
+       "front": "n-th term of a geometric sequence?",
+       "back": "bₙ = b₁·r^(n−1)"
+      },
+      {
+       "key": "m17-c4",
+       "front": "How do you tell arithmetic from geometric?",
+       "back": "Equal differences vs equal ratios"
+      },
+      {
+       "key": "m17-c5",
+       "front": "20th term of 3, 7, 11, …?",
+       "back": "3 + 19·4 = 79"
       }
      ]
     },
@@ -2022,6 +2586,38 @@
        "a": "9",
        "why": "Hypotenuse = leg·√2 = 9√2."
       }
+     ],
+     "cards": [
+      {
+       "key": "m18-c1",
+       "front": "Pythagorean theorem?",
+       "back": "a² + b² = c²"
+      },
+      {
+       "key": "m18-c2",
+       "front": "Common Pythagorean triples?",
+       "back": "3-4-5, 5-12-13, 8-15-17, 7-24-25"
+      },
+      {
+       "key": "m18-c3",
+       "front": "45-45-90 sides?",
+       "back": "x, x, x√2"
+      },
+      {
+       "key": "m18-c4",
+       "front": "30-60-90 sides?",
+       "back": "x, x√3, 2x"
+      },
+      {
+       "key": "m18-c5",
+       "front": "Angles in a triangle add to?",
+       "back": "180°"
+      },
+      {
+       "key": "m18-c6",
+       "front": "Which side is opposite the right angle?",
+       "back": "The hypotenuse (the longest side)"
+      }
      ]
     },
     {
@@ -2128,6 +2724,38 @@
        "q": "A circle has circumference 22π. Its area is kπ. What is k?",
        "a": "121",
        "why": "2πr = 22π ⇒ r = 11 ⇒ A = 121π."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m19-c1",
+       "front": "Circumference?",
+       "back": "C = 2πr = πd"
+      },
+      {
+       "key": "m19-c2",
+       "front": "Area of a circle?",
+       "back": "A = πr²"
+      },
+      {
+       "key": "m19-c3",
+       "front": "Arc length?",
+       "back": "(θ/360°)·2πr"
+      },
+      {
+       "key": "m19-c4",
+       "front": "Sector area?",
+       "back": "(θ/360°)·πr²"
+      },
+      {
+       "key": "m19-c5",
+       "front": "Inscribed angle vs central angle?",
+       "back": "Inscribed = ½ central"
+      },
+      {
+       "key": "m19-c6",
+       "front": "Diameter 10 — radius?",
+       "back": "5"
       }
      ]
     },
@@ -2264,6 +2892,33 @@
         "9% lower"
        ]
       }
+     ],
+     "cards": [
+      {
+       "key": "m20-c1",
+       "front": "Percent change = ?",
+       "back": "(new − old)/old · 100%"
+      },
+      {
+       "key": "m20-c2",
+       "front": "Repeated growth formula?",
+       "back": "N = N₀(1 + r)^t"
+      },
+      {
+       "key": "m20-c3",
+       "front": "Repeated decay formula?",
+       "back": "N = N₀(1 − r)^t"
+      },
+      {
+       "key": "m20-c4",
+       "front": "1,000 grows 10%/year for 2 years?",
+       "back": "1000·1.1² = 1210"
+      },
+      {
+       "key": "m20-c5",
+       "front": "Is compound growth = percent × years?",
+       "back": "No — multiply the factor t times"
+      }
      ]
     },
     {
@@ -2370,6 +3025,38 @@
        "a": "3",
        "why": "a·b is the constant term: 3; a + b = 4."
       }
+     ],
+     "cards": [
+      {
+       "key": "m21-c1",
+       "front": "x² + (p + q)x + pq = ?",
+       "back": "(x + p)(x + q)"
+      },
+      {
+       "key": "m21-c2",
+       "front": "a² − b² = ?",
+       "back": "(a − b)(a + b)"
+      },
+      {
+       "key": "m21-c3",
+       "front": "a² + 2ab + b² = ?",
+       "back": "(a + b)²"
+      },
+      {
+       "key": "m21-c4",
+       "front": "First step in factoring?",
+       "back": "Pull out the common factor"
+      },
+      {
+       "key": "m21-c5",
+       "front": "Factor x² + 5x + 6.",
+       "back": "(x + 2)(x + 3)"
+      },
+      {
+       "key": "m21-c6",
+       "front": "Product positive, sum negative ⇒ the two numbers are…?",
+       "back": "both negative"
+      }
      ]
     },
     {
@@ -2474,6 +3161,38 @@
        "q": "Solve x² + 6x − 5 = 0. The solutions have the form −3 ± √k. What is k?",
        "a": "14",
        "why": "x = (−6 ± √(36 + 20))/2 = −3 ± √14."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m22-c1",
+       "front": "Discriminant?",
+       "back": "D = b² − 4ac"
+      },
+      {
+       "key": "m22-c2",
+       "front": "Quadratic formula?",
+       "back": "x = (−b ± √D)/(2a)"
+      },
+      {
+       "key": "m22-c3",
+       "front": "Sum of roots (Vieta)?",
+       "back": "−b/a"
+      },
+      {
+       "key": "m22-c4",
+       "front": "Product of roots (Vieta)?",
+       "back": "c/a"
+      },
+      {
+       "key": "m22-c5",
+       "front": "First step before solving?",
+       "back": "Move everything to one side (= 0)"
+      },
+      {
+       "key": "m22-c6",
+       "front": "Why never divide by x?",
+       "back": "You lose the solution x = 0"
       }
      ]
     },
@@ -2609,6 +3328,38 @@
         "The axis of symmetry is x = 1",
         "The vertex is (5, -1)"
        ]
+      }
+     ],
+     "cards": [
+      {
+       "key": "m23-c1",
+       "front": "Vertex form?",
+       "back": "y = a(x − h)² + k, vertex (h, k)"
+      },
+      {
+       "key": "m23-c2",
+       "front": "x-coordinate of the vertex from standard form?",
+       "back": "−b/(2a)"
+      },
+      {
+       "key": "m23-c3",
+       "front": "a > 0 means the parabola…?",
+       "back": "opens up — vertex is a minimum"
+      },
+      {
+       "key": "m23-c4",
+       "front": "a < 0 means the parabola…?",
+       "back": "opens down — vertex is a maximum"
+      },
+      {
+       "key": "m23-c5",
+       "front": "Axis of symmetry?",
+       "back": "x = h"
+      },
+      {
+       "key": "m23-c6",
+       "front": "Vertex of y = (x + 3)² − 2?",
+       "back": "(−3, −2)"
       }
      ]
     },
@@ -2746,6 +3497,33 @@
        "a": "-28",
        "why": "D = 2² − 4·8 = -28."
       }
+     ],
+     "cards": [
+      {
+       "key": "m24-c1",
+       "front": "D > 0 ⇒ ?",
+       "back": "two real solutions"
+      },
+      {
+       "key": "m24-c2",
+       "front": "D = 0 ⇒ ?",
+       "back": "exactly one real solution"
+      },
+      {
+       "key": "m24-c3",
+       "front": "D < 0 ⇒ ?",
+       "back": "no real solutions"
+      },
+      {
+       "key": "m24-c4",
+       "front": "Line meets parabola — how to count intersections?",
+       "back": "Substitute y, get a quadratic, check D"
+      },
+      {
+       "key": "m24-c5",
+       "front": "x² + bx + c = 0 has one root when c = ?",
+       "back": "b²/4"
+      }
      ]
     },
     {
@@ -2882,6 +3660,38 @@
        "a": "8000",
        "why": "500·2^4 = 8000."
       }
+     ],
+     "cards": [
+      {
+       "key": "m25-c1",
+       "front": "Exponential model?",
+       "back": "y = a·b^x"
+      },
+      {
+       "key": "m25-c2",
+       "front": "In y = a·b^x, a is…?",
+       "back": "the starting value"
+      },
+      {
+       "key": "m25-c3",
+       "front": "b > 1 means…?",
+       "back": "growth of (b − 1)·100% per period"
+      },
+      {
+       "key": "m25-c4",
+       "front": "0 < b < 1 means…?",
+       "back": "decay of (1 − b)·100% per period"
+      },
+      {
+       "key": "m25-c5",
+       "front": "Doubling every k years?",
+       "back": "y = a·2^(t/k)"
+      },
+      {
+       "key": "m25-c6",
+       "front": "0.95 per year means…?",
+       "back": "a 5% decrease per year"
+      }
      ]
     },
     {
@@ -2987,6 +3797,33 @@
        "q": "How many solutions does |2x + 7| = −6 have?",
        "a": "0",
        "why": "An absolute value can't be negative — no solutions."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m26-c1",
+       "front": "|x| = a (a ≥ 0) ⇒ ?",
+       "back": "x = a or x = −a"
+      },
+      {
+       "key": "m26-c2",
+       "front": "|x| < a ⇒ ?",
+       "back": "−a < x < a"
+      },
+      {
+       "key": "m26-c3",
+       "front": "|x| > a ⇒ ?",
+       "back": "x < −a or x > a"
+      },
+      {
+       "key": "m26-c4",
+       "front": "|x| = −2 has how many solutions?",
+       "back": "None"
+      },
+      {
+       "key": "m26-c5",
+       "front": "Solve |x − 3| = 5.",
+       "back": "x = 8 or x = −2"
       }
      ]
     },
@@ -3096,6 +3933,38 @@
        "a": "48",
        "why": "V = 2·3·8 = 48."
       }
+     ],
+     "cards": [
+      {
+       "key": "m27-c1",
+       "front": "Volume of a rectangular box?",
+       "back": "V = lwh"
+      },
+      {
+       "key": "m27-c2",
+       "front": "Volume of a cylinder?",
+       "back": "V = πr²h"
+      },
+      {
+       "key": "m27-c3",
+       "front": "Volume of a cone?",
+       "back": "V = ⅓πr²h"
+      },
+      {
+       "key": "m27-c4",
+       "front": "Volume of a sphere?",
+       "back": "V = 4/3·πr³"
+      },
+      {
+       "key": "m27-c5",
+       "front": "Volume of a pyramid?",
+       "back": "V = ⅓·(base area)·h"
+      },
+      {
+       "key": "m27-c6",
+       "front": "Lengths ×k — volume changes by?",
+       "back": "×k³"
+      }
      ]
     },
     {
@@ -3202,6 +4071,38 @@
        "q": "sin x = cos 25°. Find x in degrees (0 < x < 90).",
        "a": "65",
        "why": "sin x = cos(90° − x) ⇒ x = 90° − 25° = 65°."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m28-c1",
+       "front": "SOH",
+       "back": "sin = opposite/hypotenuse"
+      },
+      {
+       "key": "m28-c2",
+       "front": "CAH",
+       "back": "cos = adjacent/hypotenuse"
+      },
+      {
+       "key": "m28-c3",
+       "front": "TOA",
+       "back": "tan = opposite/adjacent"
+      },
+      {
+       "key": "m28-c4",
+       "front": "sin x = cos(?)",
+       "back": "90° − x"
+      },
+      {
+       "key": "m28-c5",
+       "front": "sin²x + cos²x = ?",
+       "back": "1"
+      },
+      {
+       "key": "m28-c6",
+       "front": "3-4-5 triangle, angle opposite 3: sin, cos, tan?",
+       "back": "3/5, 4/5, 3/4"
       }
      ]
     },
@@ -3314,6 +4215,33 @@
        "a": "77/124",
        "why": "(38 + 39)/124."
       }
+     ],
+     "cards": [
+      {
+       "key": "m29-c1",
+       "front": "Proportion from a table?",
+       "back": "the right cell ÷ the right total"
+      },
+      {
+       "key": "m29-c2",
+       "front": "P(A | B) in a table?",
+       "back": "Look only at the row/column of B"
+      },
+      {
+       "key": "m29-c3",
+       "front": "Standard deviation measures…?",
+       "back": "spread around the mean"
+      },
+      {
+       "key": "m29-c4",
+       "front": "Outlier effect on mean vs median?",
+       "back": "Mean moves a lot; median barely"
+      },
+      {
+       "key": "m29-c5",
+       "front": "\"Of the grade 10 students…\" changes…?",
+       "back": "the denominator"
+      }
      ]
     },
     {
@@ -3417,6 +4345,28 @@
        "q": "x² + 10x + y² − 8y = 4 is a circle. What is r²?",
        "a": "45",
        "why": "(x + 5)² + (y − 4)² = 4 + 25 + 16 = 45."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m30-c1",
+       "front": "Circle equation?",
+       "back": "(x − h)² + (y − k)² = r²"
+      },
+      {
+       "key": "m30-c2",
+       "front": "Center and radius of (x + 2)² + (y − 1)² = 9?",
+       "back": "(−2, 1), r = 3"
+      },
+      {
+       "key": "m30-c3",
+       "front": "Completing the square: x² + 2ax = ?",
+       "back": "(x + a)² − a²"
+      },
+      {
+       "key": "m30-c4",
+       "front": "The right side of the circle equation is…?",
+       "back": "r², not r"
       }
      ]
     },
@@ -3552,6 +4502,33 @@
         "p(4) = 4"
        ]
       }
+     ],
+     "cards": [
+      {
+       "key": "m31-c1",
+       "front": "Remainder theorem?",
+       "back": "p(x) ÷ (x − a) leaves remainder p(a)"
+      },
+      {
+       "key": "m31-c2",
+       "front": "(x − a) is a factor of p ⇔ ?",
+       "back": "p(a) = 0"
+      },
+      {
+       "key": "m31-c3",
+       "front": "Zeros of p on the graph?",
+       "back": "x-intercepts"
+      },
+      {
+       "key": "m31-c4",
+       "front": "A repeated zero — the graph…?",
+       "back": "touches the x-axis without crossing"
+      },
+      {
+       "key": "m31-c5",
+       "front": "Factor (x + 4) gives which zero?",
+       "back": "−4"
+      }
      ]
     },
     {
@@ -3655,6 +4632,28 @@
        "a": "9",
        "why": "Vertex (2, 9) ⇒ the horizontal line y = 9 touches the parabola once."
       }
+     ],
+     "cards": [
+      {
+       "key": "m32-c1",
+       "front": "How to solve a line + parabola system?",
+       "back": "Set the y-expressions equal"
+      },
+      {
+       "key": "m32-c2",
+       "front": "Number of solutions of a nonlinear system?",
+       "back": "Number of real roots of the new equation (check D)"
+      },
+      {
+       "key": "m32-c3",
+       "front": "Solve y = x², y = x + 2.",
+       "back": "x = 2 or x = −1"
+      },
+      {
+       "key": "m32-c4",
+       "front": "Fast tool?",
+       "back": "Desmos — click the intersection points"
+      }
      ]
     },
     {
@@ -3757,6 +4756,38 @@
        "q": "Two triangles are similar with scale factor 3/2. A side of the smaller one is 3. What is the corresponding side of the larger one?",
        "a": "9/2",
        "why": "3·3/2 = 9/2."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m33-c1",
+       "front": "Similar figures: sides ×k ⇒ areas?",
+       "back": "×k²"
+      },
+      {
+       "key": "m33-c2",
+       "front": "Similar figures: sides ×k ⇒ volumes?",
+       "back": "×k³"
+      },
+      {
+       "key": "m33-c3",
+       "front": "Vertical angles are…?",
+       "back": "equal"
+      },
+      {
+       "key": "m33-c4",
+       "front": "A linear pair of angles adds to?",
+       "back": "180°"
+      },
+      {
+       "key": "m33-c5",
+       "front": "Parallel lines: alternate interior angles are…?",
+       "back": "equal"
+      },
+      {
+       "key": "m33-c6",
+       "front": "How to match sides of similar triangles?",
+       "back": "Opposite equal angles"
       }
      ]
     },
@@ -3862,6 +4893,38 @@
        "a": "2/3",
        "why": "s = rθ = 2·π/3."
       }
+     ],
+     "cards": [
+      {
+       "key": "m34-c1",
+       "front": "π radians = ?",
+       "back": "180°"
+      },
+      {
+       "key": "m34-c2",
+       "front": "Degrees → radians?",
+       "back": "multiply by π/180"
+      },
+      {
+       "key": "m34-c3",
+       "front": "Arc length with radians?",
+       "back": "s = rθ"
+      },
+      {
+       "key": "m34-c4",
+       "front": "90° in radians?",
+       "back": "π/2"
+      },
+      {
+       "key": "m34-c5",
+       "front": "sin(π/6) = ?",
+       "back": "1/2"
+      },
+      {
+       "key": "m34-c6",
+       "front": "Does s = rθ work with degrees?",
+       "back": "No — radians only"
+      }
      ]
     },
     {
@@ -3963,6 +5026,33 @@
        "q": "x² − y² = 24 and x − y = 2. What is x + y?",
        "a": "12",
        "why": "(x − y)(x + y) = 24 ⇒ x + y = 24/2 = 12."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m35-c1",
+       "front": "An identity holds for all x ⇒ ?",
+       "back": "Coefficients of like powers are equal"
+      },
+      {
+       "key": "m35-c2",
+       "front": "3x + 2y = 5. Find 6x + 4y.",
+       "back": "10 (just double)"
+      },
+      {
+       "key": "m35-c3",
+       "front": "x² − y² = ?",
+       "back": "(x − y)(x + y)"
+      },
+      {
+       "key": "m35-c4",
+       "front": "x + y = 5, xy = 6. x² + y² = ?",
+       "back": "(x + y)² − 2xy = 13"
+      },
+      {
+       "key": "m35-c5",
+       "front": "Strategy for hard algebra?",
+       "back": "Look for structure before solving"
       }
      ]
     },
@@ -4108,6 +5198,33 @@
        "q": "f(t) = 100 + 100t and g(t) = 100·(1.5)^t. What is the smallest integer t > 0 for which g(t) > f(t)?",
        "a": "4",
        "why": "Try t = 1, 2, 3, …: at t = 4, g = 506.25 > f = 500 for the first time."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m36-c1",
+       "front": "Linear model pattern?",
+       "back": "+ the same amount each step"
+      },
+      {
+       "key": "m36-c2",
+       "front": "Exponential model pattern?",
+       "back": "× the same factor each step"
+      },
+      {
+       "key": "m36-c3",
+       "front": "\"Increases by 5% each year\" is…?",
+       "back": "exponential"
+      },
+      {
+       "key": "m36-c4",
+       "front": "\"Increases by 5 units each year\" is…?",
+       "back": "linear"
+      },
+      {
+       "key": "m36-c5",
+       "front": "Linear vs exponential in the long run?",
+       "back": "The exponential always overtakes"
       }
      ]
     },
@@ -4287,6 +5404,33 @@
         "No conclusion at all"
        ]
       }
+     ],
+     "cards": [
+      {
+       "key": "m37-c1",
+       "front": "Random sampling allows…?",
+       "back": "generalizing to the population"
+      },
+      {
+       "key": "m37-c2",
+       "front": "Random assignment allows…?",
+       "back": "cause-and-effect conclusions"
+      },
+      {
+       "key": "m37-c3",
+       "front": "60% ± 4% means…?",
+       "back": "the true value is likely between 56% and 64%"
+      },
+      {
+       "key": "m37-c4",
+       "front": "Larger sample ⇒ margin of error?",
+       "back": "smaller"
+      },
+      {
+       "key": "m37-c5",
+       "front": "Does correlation prove causation?",
+       "back": "No"
+      }
      ]
     },
     {
@@ -4389,6 +5533,33 @@
        "q": "Boys: 32 prefer tea, 28 prefer coffee. Girls: 29 tea, 10 coffee. What is P(tea | girl)?",
        "a": "29/39",
        "why": "29/(29 + 10)."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m38-c1",
+       "front": "P(A | B) = ?",
+       "back": "P(A and B)/P(B)"
+      },
+      {
+       "key": "m38-c2",
+       "front": "Conditional probability in a table?",
+       "back": "cell ÷ total of the condition's row/column"
+      },
+      {
+       "key": "m38-c3",
+       "front": "Is P(A | B) = P(B | A)?",
+       "back": "Not in general"
+      },
+      {
+       "key": "m38-c4",
+       "front": "Independent: P(A and B) = ?",
+       "back": "P(A)·P(B)"
+      },
+      {
+       "key": "m38-c5",
+       "front": "Signal words for a condition?",
+       "back": "given, if, of the, among"
       }
      ]
     },
@@ -4499,6 +5670,48 @@
        "q": "After a 10% price increase, an item costs 220. What was the price before the increase?",
        "a": "200",
        "why": "new = old·1.1 ⇒ old = 220/1.1 = 200."
+      }
+     ],
+     "cards": [
+      {
+       "key": "m39-c1",
+       "front": "P(A | B) = ?",
+       "back": "P(A and B)/P(B)"
+      },
+      {
+       "key": "m39-c2",
+       "front": "In y = a·b^x, a is…?",
+       "back": "the starting value"
+      },
+      {
+       "key": "m39-c3",
+       "front": "x² + bx + c = 0 has one root when c = ?",
+       "back": "b²/4"
+      },
+      {
+       "key": "m39-c4",
+       "front": "Factor (x + 4) gives which zero?",
+       "back": "−4"
+      },
+      {
+       "key": "m39-c5",
+       "front": "3-4-5 triangle, angle opposite 3: sin, cos, tan?",
+       "back": "3/5, 4/5, 3/4"
+      },
+      {
+       "key": "m39-c6",
+       "front": "Factor x² + 5x + 6.",
+       "back": "(x + 2)(x + 3)"
+      },
+      {
+       "key": "m39-c7",
+       "front": "SOH",
+       "back": "sin = opposite/hypotenuse"
+      },
+      {
+       "key": "m39-c8",
+       "front": "First step in factoring?",
+       "back": "Pull out the common factor"
       }
      ]
     },
@@ -4619,6 +5832,38 @@
         "y = 3x²",
         "y = 3·3^x"
        ]
+      }
+     ],
+     "cards": [
+      {
+       "key": "m40-c1",
+       "front": "SAT Math format?",
+       "back": "2 modules × 22 questions, 35 minutes each"
+      },
+      {
+       "key": "m40-c2",
+       "front": "Is there a penalty for guessing?",
+       "back": "No — never leave a blank"
+      },
+      {
+       "key": "m40-c3",
+       "front": "Built-in calculator?",
+       "back": "Desmos"
+      },
+      {
+       "key": "m40-c4",
+       "front": "Strategy for a long question?",
+       "back": "Mark for review and come back"
+      },
+      {
+       "key": "m40-c5",
+       "front": "Student-produced answers?",
+       "back": "Fraction or decimal, no units"
+      },
+      {
+       "key": "m40-c6",
+       "front": "Time per question (Math)?",
+       "back": "About 1.5 minutes"
       }
      ]
     }
@@ -4759,6 +6004,43 @@
        "a": "C",
        "why": "Inverted order: the subject a series (singular) comes after the verb."
       }
+     ],
+     "cards": [
+      {
+       "key": "e01-c1",
+       "front": "Verb agrees with…?",
+       "back": "the main subject noun, not the nearest word"
+      },
+      {
+       "key": "e01-c2",
+       "front": "each / every / everyone: singular or plural?",
+       "back": "singular"
+      },
+      {
+       "key": "e01-c3",
+       "front": "a number of … vs the number of …?",
+       "back": "a number of → plural; the number of → singular"
+      },
+      {
+       "key": "e01-c4",
+       "front": "neither A nor B — agree with…?",
+       "back": "the nearer subject (B)"
+      },
+      {
+       "key": "e01-c5",
+       "front": "Subjects joined by and?",
+       "back": "plural"
+      },
+      {
+       "key": "e01-c6",
+       "front": "Does \"along with …\" change the number?",
+       "back": "No — it's an interrupter"
+      },
+      {
+       "key": "e01-c7",
+       "front": "The group of researchers (is/are)?",
+       "back": "is"
+      }
      ]
     },
     {
@@ -4890,6 +6172,38 @@
        "a": "C",
        "why": "it/this could mean the puzzle or the map; the puzzle is clear."
       }
+     ],
+     "cards": [
+      {
+       "key": "e02-c1",
+       "front": "Possessive of it?",
+       "back": "its (no apostrophe)"
+      },
+      {
+       "key": "e02-c2",
+       "front": "it's = ?",
+       "back": "it is / it has"
+      },
+      {
+       "key": "e02-c3",
+       "front": "A company or team: it or they?",
+       "back": "it"
+      },
+      {
+       "key": "e02-c4",
+       "front": "After a preposition: I or me?",
+       "back": "me (object form)"
+      },
+      {
+       "key": "e02-c5",
+       "front": "Possessive relative pronoun?",
+       "back": "whose"
+      },
+      {
+       "key": "e02-c6",
+       "front": "Pronoun could mean two nouns. Fix?",
+       "back": "Name the noun instead"
+      }
      ]
     },
     {
@@ -5018,6 +6332,33 @@
        ],
        "a": "C",
        "why": "Earlier than another past event (became) → had worked."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e03-c1",
+       "front": "A specific past time (in 1962) takes…?",
+       "back": "simple past"
+      },
+      {
+       "key": "e03-c2",
+       "front": "since / for up to now takes…?",
+       "back": "present perfect (has/have + V3)"
+      },
+      {
+       "key": "e03-c3",
+       "front": "An action before another past action?",
+       "back": "past perfect (had + V3)"
+      },
+      {
+       "key": "e03-c4",
+       "front": "Completed by a future moment?",
+       "back": "future perfect (will have + V3)"
+      },
+      {
+       "key": "e03-c5",
+       "front": "Rule for switching tenses?",
+       "back": "Don't switch without a reason"
       }
      ]
     },
@@ -5149,6 +6490,38 @@
        "a": "B",
        "why": "Two ICs → semicolon."
       }
+     ],
+     "cards": [
+      {
+       "key": "e04-c1",
+       "front": "Comma splice?",
+       "back": "Two independent clauses joined by only a comma"
+      },
+      {
+       "key": "e04-c2",
+       "front": "Three correct ways to join two ICs?",
+       "back": "Period; semicolon; comma + FANBOYS"
+      },
+      {
+       "key": "e04-c3",
+       "front": "FANBOYS?",
+       "back": "for, and, nor, but, or, yet, so"
+      },
+      {
+       "key": "e04-c4",
+       "front": "A semicolon needs…?",
+       "back": "a complete sentence on both sides"
+      },
+      {
+       "key": "e04-c5",
+       "front": "IC; however, IC — punctuation after however?",
+       "back": "a comma"
+      },
+      {
+       "key": "e04-c6",
+       "front": "Dependent clause (Although …) + IC?",
+       "back": "a comma, not a semicolon"
+      }
      ]
     },
     {
@@ -5277,6 +6650,33 @@
        ],
        "a": "A",
        "why": "IC: explanation."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e05-c1",
+       "front": "What must come before a colon?",
+       "back": "A complete sentence"
+      },
+      {
+       "key": "e05-c2",
+       "front": "What can follow a colon?",
+       "back": "A list, an explanation or an example"
+      },
+      {
+       "key": "e05-c3",
+       "front": "Colon after include / such as / are?",
+       "back": "No"
+      },
+      {
+       "key": "e05-c4",
+       "front": "Dash at the end of a sentence works like…?",
+       "back": "a colon"
+      },
+      {
+       "key": "e05-c5",
+       "front": "\"She had one goal___ to win.\"",
+       "back": "colon"
       }
      ]
     },
@@ -5408,6 +6808,33 @@
        "a": "B",
        "why": "who study sleep is essential (it identifies the researchers) — no comma."
       }
+     ],
+     "cards": [
+      {
+       "key": "e06-c1",
+       "front": "Comma after an introductory element?",
+       "back": "Yes: After the game, we …"
+      },
+      {
+       "key": "e06-c2",
+       "front": "IC, FANBOYS IC — comma?",
+       "back": "Yes, before the conjunction"
+      },
+      {
+       "key": "e06-c3",
+       "front": "Comma between subject and verb?",
+       "back": "Never"
+      },
+      {
+       "key": "e06-c4",
+       "front": "FANBOYS + no new subject?",
+       "back": "No comma (not an IC)"
+      },
+      {
+       "key": "e06-c5",
+       "front": "Commas in a list of three?",
+       "back": "A, B, and C"
+      }
      ]
     },
     {
@@ -5537,6 +6964,33 @@
        ],
        "a": "A",
        "why": "which … is nonessential; close it with a comma."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e07-c1",
+       "front": "Nonessential element marks?",
+       "back": "Two commas, two dashes, or parentheses"
+      },
+      {
+       "key": "e07-c2",
+       "front": "Can you mix a comma and a dash around one element?",
+       "back": "No — the marks must match"
+      },
+      {
+       "key": "e07-c3",
+       "front": "Essential information (identifies who)?",
+       "back": "No commas"
+      },
+      {
+       "key": "e07-c4",
+       "front": "Test for nonessential?",
+       "back": "Remove it — is the sentence still complete and clear?"
+      },
+      {
+       "key": "e07-c5",
+       "front": "Opened with a dash ⇒ close with…?",
+       "back": "a dash"
       }
      ]
     },
@@ -5668,6 +7122,38 @@
        "a": "B",
        "why": "Each → one → participant's."
       }
+     ],
+     "cards": [
+      {
+       "key": "e08-c1",
+       "front": "Possessive of one student?",
+       "back": "student's"
+      },
+      {
+       "key": "e08-c2",
+       "front": "Possessive of many students?",
+       "back": "students'"
+      },
+      {
+       "key": "e08-c3",
+       "front": "Possessive of children?",
+       "back": "children's"
+      },
+      {
+       "key": "e08-c4",
+       "front": "Plural without possession — apostrophe?",
+       "back": "No"
+      },
+      {
+       "key": "e08-c5",
+       "front": "its' — correct?",
+       "back": "Never"
+      },
+      {
+       "key": "e08-c6",
+       "front": "they're / their / there?",
+       "back": "they are / possessive / place"
+      }
      ]
     },
     {
@@ -5796,6 +7282,33 @@
        "a": "A",
        "why": "both A and B: nouns."
       }
+     ],
+     "cards": [
+      {
+       "key": "e09-c1",
+       "front": "Parallel structure rule?",
+       "back": "Items in a list share the same form"
+      },
+      {
+       "key": "e09-c2",
+       "front": "She likes hiking, swimming, and ___ (to read / reading)?",
+       "back": "reading"
+      },
+      {
+       "key": "e09-c3",
+       "front": "not only A but also B — rule?",
+       "back": "A and B in the same form"
+      },
+      {
+       "key": "e09-c4",
+       "front": "would rather walk than ___?",
+       "back": "take (bare verb)"
+      },
+      {
+       "key": "e09-c5",
+       "front": "Classic parallelism error?",
+       "back": "Mixing -ing with to-infinitives"
+      }
      ]
     },
     {
@@ -5923,6 +7436,33 @@
        "a": "B",
        "why": "The author draws on interviews."
       }
+     ],
+     "cards": [
+      {
+       "key": "e10-c1",
+       "front": "What does an introductory modifier describe?",
+       "back": "Whatever comes right after the comma"
+      },
+      {
+       "key": "e10-c2",
+       "front": "Dangling modifier?",
+       "back": "The intro phrase doesn't fit the noun after the comma"
+      },
+      {
+       "key": "e10-c3",
+       "front": "Walking to school, ___ (the rain / I) …",
+       "back": "I"
+      },
+      {
+       "key": "e10-c4",
+       "front": "How to check a modifier?",
+       "back": "Ask who does the action — that noun goes right after the comma"
+      },
+      {
+       "key": "e10-c5",
+       "front": "Known for her bold colors, ___ (Kahlo / Kahlo's paintings)?",
+       "back": "Kahlo"
+      }
      ]
     },
     {
@@ -6049,6 +7589,33 @@
        ],
        "a": "B",
        "why": "paintings vs paintings."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e11-c1",
+       "front": "Logical comparison rule?",
+       "back": "Compare like with like"
+      },
+      {
+       "key": "e11-c2",
+       "front": "Kahlo's paintings are brighter than ___?",
+       "back": "those of Rivera / Rivera's"
+      },
+      {
+       "key": "e11-c3",
+       "front": "that of vs those of?",
+       "back": "that of = singular; those of = plural"
+      },
+      {
+       "key": "e11-c4",
+       "front": "Two items: better or best?",
+       "back": "better (comparative)"
+      },
+      {
+       "key": "e11-c5",
+       "front": "Unlike most mammals, ___ (the platypus / its eggs)?",
+       "back": "the platypus"
       }
      ]
     },
@@ -6178,6 +7745,28 @@
        "a": "B",
        "why": "Short, without repetition."
       }
+     ],
+     "cards": [
+      {
+       "key": "e12-c1",
+       "front": "When all options are grammatical, prefer…?",
+       "back": "the shortest one that keeps the meaning"
+      },
+      {
+       "key": "e12-c2",
+       "front": "\"return back\", \"past history\" are…?",
+       "back": "redundant"
+      },
+      {
+       "key": "e12-c3",
+       "front": "due to the fact that → ?",
+       "back": "because"
+      },
+      {
+       "key": "e12-c4",
+       "front": "When NOT to choose the shortest?",
+       "back": "If it changes meaning or breaks grammar"
+      }
      ]
     },
     {
@@ -6305,6 +7894,33 @@
        "a": "B",
        "why": "Contrast."
       }
+     ],
+     "cards": [
+      {
+       "key": "e13-c1",
+       "front": "Contrast transitions?",
+       "back": "however, but, yet, nevertheless, in contrast, still"
+      },
+      {
+       "key": "e13-c2",
+       "front": "How to choose a transition?",
+       "back": "Read both sentences and name the relationship first"
+      },
+      {
+       "key": "e13-c3",
+       "front": "Concession transitions?",
+       "back": "even so, nonetheless, although"
+      },
+      {
+       "key": "e13-c4",
+       "front": "Expensive. ___, it saved time.",
+       "back": "However"
+      },
+      {
+       "key": "e13-c5",
+       "front": "Choose transitions by…?",
+       "back": "logic, not by how they sound"
+      }
      ]
     },
     {
@@ -6430,6 +8046,28 @@
        ],
        "a": "A",
        "why": "Effect / accordingly."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e14-c1",
+       "front": "Cause-and-effect transitions?",
+       "back": "therefore, thus, as a result, consequently, hence"
+      },
+      {
+       "key": "e14-c2",
+       "front": "The road was icy. ___, school closed.",
+       "back": "As a result"
+      },
+      {
+       "key": "e14-c3",
+       "front": "Effect vs addition — example of addition?",
+       "back": "moreover / furthermore"
+      },
+      {
+       "key": "e14-c4",
+       "front": "Test for effect?",
+       "back": "Does the second idea follow from the first?"
       }
      ]
     },
@@ -6562,6 +8200,38 @@
        "a": "A",
        "why": "The next step."
       }
+     ],
+     "cards": [
+      {
+       "key": "e15-c1",
+       "front": "Example transitions?",
+       "back": "for example, for instance"
+      },
+      {
+       "key": "e15-c2",
+       "front": "Addition transitions?",
+       "back": "moreover, furthermore, in addition"
+      },
+      {
+       "key": "e15-c3",
+       "front": "Sequence transitions?",
+       "back": "first, next, then, finally, subsequently"
+      },
+      {
+       "key": "e15-c4",
+       "front": "Similarity transitions?",
+       "back": "similarly, likewise"
+      },
+      {
+       "key": "e15-c5",
+       "front": "Emphasis transitions?",
+       "back": "in fact, indeed"
+      },
+      {
+       "key": "e15-c6",
+       "front": "Summary transitions?",
+       "back": "overall, in conclusion"
+      }
      ]
     },
     {
@@ -6689,6 +8359,33 @@
        ],
        "a": "B",
        "why": "A contrast in length."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e16-c1",
+       "front": "Rhetorical synthesis: read what first?",
+       "back": "The goal in the question"
+      },
+      {
+       "key": "e16-c2",
+       "front": "Goal \"emphasize a difference\" — look for…?",
+       "back": "while, whereas, unlike, compared with"
+      },
+      {
+       "key": "e16-c3",
+       "front": "Must the answer use every note?",
+       "back": "No"
+      },
+      {
+       "key": "e16-c4",
+       "front": "True facts but wrong goal?",
+       "back": "Wrong answer"
+      },
+      {
+       "key": "e16-c5",
+       "front": "Goal \"introduce X to a new audience\" needs…?",
+       "back": "who/what X is"
       }
      ]
     },
@@ -6818,6 +8515,33 @@
        "a": "B",
        "why": "Although … promising → but cautious."
       }
+     ],
+     "cards": [
+      {
+       "key": "e17-c1",
+       "front": "First step for words in context?",
+       "back": "Cover the blank and supply your own word"
+      },
+      {
+       "key": "e17-c2",
+       "front": "Clue after a colon?",
+       "back": "An explanation of the blank"
+      },
+      {
+       "key": "e17-c3",
+       "front": "Clue word but / although?",
+       "back": "A contrast"
+      },
+      {
+       "key": "e17-c4",
+       "front": "robust evidence = ?",
+       "back": "convincing, strong"
+      },
+      {
+       "key": "e17-c5",
+       "front": "Trap in vocabulary questions?",
+       "back": "A word that just sounds smart"
+      }
      ]
     },
     {
@@ -6945,6 +8669,48 @@
        ],
        "a": "A",
        "why": "They check closely."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e18-c1",
+       "front": "corroborate",
+       "back": "confirm, support with evidence"
+      },
+      {
+       "key": "e18-c2",
+       "front": "ubiquitous",
+       "back": "found everywhere"
+      },
+      {
+       "key": "e18-c3",
+       "front": "tenuous",
+       "back": "weak, thin"
+      },
+      {
+       "key": "e18-c4",
+       "front": "mitigate",
+       "back": "make less severe"
+      },
+      {
+       "key": "e18-c5",
+       "front": "ambivalent",
+       "back": "having mixed feelings"
+      },
+      {
+       "key": "e18-c6",
+       "front": "novel (adjective)",
+       "back": "new, original"
+      },
+      {
+       "key": "e18-c7",
+       "front": "arbitrary",
+       "back": "random, without a reason"
+      },
+      {
+       "key": "e18-c8",
+       "front": "scrutinize",
+       "back": "examine closely"
       }
      ]
     },
@@ -7075,6 +8841,33 @@
        "a": "B",
        "why": "It shows a result."
       }
+     ],
+     "cards": [
+      {
+       "key": "e19-c1",
+       "front": "Purpose question asks…?",
+       "back": "why the author wrote the text"
+      },
+      {
+       "key": "e19-c2",
+       "front": "Function question asks…?",
+       "back": "what role a sentence plays"
+      },
+      {
+       "key": "e19-c3",
+       "front": "Common functions?",
+       "back": "introduce, give an example, counter, conclude"
+      },
+      {
+       "key": "e19-c4",
+       "front": "Danger words in purpose answers?",
+       "back": "prove, refute (too strong)"
+      },
+      {
+       "key": "e19-c5",
+       "front": "\"Many believe X. In fact, Y.\" — role of sentence 2?",
+       "back": "Challenges the belief with evidence"
+      }
      ]
     },
     {
@@ -7204,6 +8997,33 @@
        "a": "B",
        "why": "A broader view."
       }
+     ],
+     "cards": [
+      {
+       "key": "e20-c1",
+       "front": "Main idea = ?",
+       "back": "topic + central claim"
+      },
+      {
+       "key": "e20-c2",
+       "front": "Where is the main idea often found?",
+       "back": "After but / however"
+      },
+      {
+       "key": "e20-c3",
+       "front": "Too narrow answer = ?",
+       "back": "a single detail"
+      },
+      {
+       "key": "e20-c4",
+       "front": "Signal words of wrong answers?",
+       "back": "only, all, never"
+      },
+      {
+       "key": "e20-c5",
+       "front": "Best first step?",
+       "back": "State it in your own words before the options"
+      }
      ]
     },
     {
@@ -7332,6 +9152,33 @@
        "a": "B",
        "why": "A cautious conclusion."
       }
+     ],
+     "cards": [
+      {
+       "key": "e21-c1",
+       "front": "Inference = ?",
+       "back": "facts + the smallest logical step"
+      },
+      {
+       "key": "e21-c2",
+       "front": "Cautious words that are often right?",
+       "back": "may, might, suggests"
+      },
+      {
+       "key": "e21-c3",
+       "front": "Correlation proves causation?",
+       "back": "No"
+      },
+      {
+       "key": "e21-c4",
+       "front": "Eliminate options that…?",
+       "back": "add new information or overgeneralize"
+      },
+      {
+       "key": "e21-c5",
+       "front": "Usual question wording?",
+       "back": "Which choice most logically completes the text?"
+      }
      ]
     },
     {
@@ -7458,6 +9305,28 @@
        ],
        "a": "B",
        "why": "A direct measurement."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e22-c1",
+       "front": "Evidence question — find first?",
+       "back": "the exact claim to support"
+      },
+      {
+       "key": "e22-c2",
+       "front": "Good evidence is…?",
+       "back": "direct support, not just on topic"
+      },
+      {
+       "key": "e22-c3",
+       "front": "\"Weaken\" the claim means…?",
+       "back": "find the option that contradicts it"
+      },
+      {
+       "key": "e22-c4",
+       "front": "Claim: participation rose. Evidence?",
+       "back": "A number that increased (40 → 65)"
       }
      ]
     },
@@ -7589,6 +9458,28 @@
        "a": "B",
        "why": "An equal comparison."
       }
+     ],
+     "cards": [
+      {
+       "key": "e23-c1",
+       "front": "Quantitative evidence: two checks?",
+       "back": "Accurate to the data AND supports the claim"
+      },
+      {
+       "key": "e23-c2",
+       "front": "Read first: the graph or the claim?",
+       "back": "The claim in the text"
+      },
+      {
+       "key": "e23-c3",
+       "front": "Common trap?",
+       "back": "An accurate statement that isn't about the claim"
+      },
+      {
+       "key": "e23-c4",
+       "front": "What to double-check in tables?",
+       "back": "Units, years and labels"
+      }
      ]
     },
     {
@@ -7717,6 +9608,28 @@
        "a": "A",
        "why": "A different emphasis."
       }
+     ],
+     "cards": [
+      {
+       "key": "e24-c1",
+       "front": "Cross-text: four relationships?",
+       "back": "agree, disagree, agree with a qualification, different emphasis"
+      },
+      {
+       "key": "e24-c2",
+       "front": "First step?",
+       "back": "State each text's claim separately"
+      },
+      {
+       "key": "e24-c3",
+       "front": "\"Agrees but notes costs\" = ?",
+       "back": "agreement with a qualification"
+      },
+      {
+       "key": "e24-c4",
+       "front": "Is a qualification a full disagreement?",
+       "back": "No"
+      }
      ]
     },
     {
@@ -7844,6 +9757,33 @@
        ],
        "a": "A",
        "why": "A shift toward renewal."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e25-c1",
+       "front": "How to find a character's feeling?",
+       "back": "Look at specific descriptive words"
+      },
+      {
+       "key": "e25-c2",
+       "front": "'Wonderful,' he muttered at the flat tire — tone?",
+       "back": "Ironic"
+      },
+      {
+       "key": "e25-c3",
+       "front": "Repetition in poetry often creates…?",
+       "back": "rhythm and focus"
+      },
+      {
+       "key": "e25-c4",
+       "front": "A shift from winter to buds conveys…?",
+       "back": "hope, renewal"
+      },
+      {
+       "key": "e25-c5",
+       "front": "Golden rule for literature questions?",
+       "back": "Don't read in what isn't in the text"
       }
      ]
     },
@@ -7974,6 +9914,28 @@
        "a": "B",
        "why": "including … is set off by a comma."
       }
+     ],
+     "cards": [
+      {
+       "key": "e26-c1",
+       "front": "First step in hard punctuation?",
+       "back": "Find the main subject + verb"
+      },
+      {
+       "key": "e26-c2",
+       "front": "Opened a nonessential part with a comma — close with?",
+       "back": "a comma"
+      },
+      {
+       "key": "e26-c3",
+       "front": "Two ICs?",
+       "back": "semicolon, period, or comma + FANBOYS"
+      },
+      {
+       "key": "e26-c4",
+       "front": "Never separate…?",
+       "back": "subject from verb, verb from object"
+      }
      ]
     },
     {
@@ -8101,6 +10063,28 @@
        "a": "B",
        "why": "contemporaries (people) vs Zhamal."
       }
+     ],
+     "cards": [
+      {
+       "key": "e27-c1",
+       "front": "How to find the topic of a grammar question?",
+       "back": "Look at how the options differ"
+      },
+      {
+       "key": "e27-c2",
+       "front": "Subject hidden behind interrupters?",
+       "back": "Cross them out to find it"
+      },
+      {
+       "key": "e27-c3",
+       "front": "Inverted sentence (Among the artifacts was/were …)?",
+       "back": "Find the real subject after the verb"
+      },
+      {
+       "key": "e27-c4",
+       "front": "Modifier rule?",
+       "back": "Place it next to what it describes"
+      }
      ]
     },
     {
@@ -8227,6 +10211,33 @@
        "a": "A",
        "why": "Fertilizer was the only difference."
       }
+     ],
+     "cards": [
+      {
+       "key": "e28-c1",
+       "front": "SAT R&W format?",
+       "back": "2 modules × 27 questions, 32 minutes each"
+      },
+      {
+       "key": "e28-c2",
+       "front": "Time per R&W question?",
+       "back": "About 70 seconds"
+      },
+      {
+       "key": "e28-c3",
+       "front": "Read question or text first?",
+       "back": "The question"
+      },
+      {
+       "key": "e28-c4",
+       "front": "Before looking at options…?",
+       "back": "form your own answer"
+      },
+      {
+       "key": "e28-c5",
+       "front": "Guessing penalty?",
+       "back": "None — answer everything"
+      }
      ]
     },
     {
@@ -8349,6 +10360,48 @@
        "a": "B",
        "why": "mammals vs the platypus (an animal)."
       }
+     ],
+     "cards": [
+      {
+       "key": "e29-c1",
+       "front": "they're / their / there?",
+       "back": "they are / possessive / place"
+      },
+      {
+       "key": "e29-c2",
+       "front": "Known for her bold colors, ___ (Kahlo / Kahlo's paintings)?",
+       "back": "Kahlo"
+      },
+      {
+       "key": "e29-c3",
+       "front": "Subjects joined by and?",
+       "back": "plural"
+      },
+      {
+       "key": "e29-c4",
+       "front": "FANBOYS + no new subject?",
+       "back": "No comma (not an IC)"
+      },
+      {
+       "key": "e29-c5",
+       "front": "Commas in a list of three?",
+       "back": "A, B, and C"
+      },
+      {
+       "key": "e29-c6",
+       "front": "it's = ?",
+       "back": "it is / it has"
+      },
+      {
+       "key": "e29-c7",
+       "front": "After a preposition: I or me?",
+       "back": "me (object form)"
+      },
+      {
+       "key": "e29-c8",
+       "front": "Rule for switching tenses?",
+       "back": "Don't switch without a reason"
+      }
      ]
     },
     {
@@ -8470,6 +10523,48 @@
        ],
        "a": "A",
        "why": "Both facts, and about the claim."
+      }
+     ],
+     "cards": [
+      {
+       "key": "e30-c1",
+       "front": "Where is the main idea often found?",
+       "back": "After but / however"
+      },
+      {
+       "key": "e30-c2",
+       "front": "Inverted sentence (Among the artifacts was/were …)?",
+       "back": "Find the real subject after the verb"
+      },
+      {
+       "key": "e30-c3",
+       "front": "Quantitative evidence: two checks?",
+       "back": "Accurate to the data AND supports the claim"
+      },
+      {
+       "key": "e30-c4",
+       "front": "Modifier rule?",
+       "back": "Place it next to what it describes"
+      },
+      {
+       "key": "e30-c5",
+       "front": "Inference = ?",
+       "back": "facts + the smallest logical step"
+      },
+      {
+       "key": "e30-c6",
+       "front": "Two ICs?",
+       "back": "semicolon, period, or comma + FANBOYS"
+      },
+      {
+       "key": "e30-c7",
+       "front": "Correlation proves causation?",
+       "back": "No"
+      },
+      {
+       "key": "e30-c8",
+       "front": "True facts but wrong goal?",
+       "back": "Wrong answer"
       }
      ]
     }
