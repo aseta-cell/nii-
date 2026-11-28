@@ -73,6 +73,9 @@ server {
     location ~ ^/(config\.local\.php|config\.local\.example\.php|database\.sql|DEPLOY\.md|README\.md|CNAME)$ { deny all; }
     location ~ ^/migration-.*\.sql$ { deny all; }
 
+    # Исходники веб-версии KKSU наружу не отдаём (сайт KKSU — папка /kksu/)
+    location ^~ /kksu-app/ { deny all; }
+
     # Загруженные файлы никогда не выполняются как PHP
     location ^~ /uploads/ {
         location ~ \.php$ { deny all; }
@@ -207,3 +210,25 @@ mysql journal < migration-002-patents.sql
 ```bash
 mysqldump journal > /root/journal-$(date +%F).sql
 ```
+
+## KKSU Online (веб-версия приложения)
+
+Полная веб-версия KKSU лежит в папке `kksu/` и открывается по адресу
+`https://nii-arai-publishhouse.kz/kksu/`. Это обычные статические файлы — Nginx
+отдаёт их сам, PHP и база данных для них не нужны. Данные хранятся в том же
+Supabase, что и у iPhone-приложения.
+
+Обновление на сервере:
+
+```bash
+cd /var/www/nii && git pull
+```
+
+Если конфиг Nginx настраивался раньше, добавьте в него строку
+`location ^~ /kksu-app/ { deny all; }` (см. шаг 5) и выполните
+`nginx -t && systemctl reload nginx`.
+
+В Supabase → Authentication → URL Configuration добавьте в Redirect URLs
+`https://nii-arai-publishhouse.kz/kksu/`.
+
+Как пересобрать сайт после изменений — см. `kksu-app/README.md`.
